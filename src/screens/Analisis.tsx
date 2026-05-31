@@ -8,7 +8,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   return (
     <div className="glass-card px-3 py-2 text-xs border border-white/10">
       <p className="text-white/60">{label}</p>
-      <p className="text-white font-bold">C$ {payload[0].value.toFixed(2)}</p>
+      <p className="text-white font-bold">L {payload[0].value.toFixed(2)}</p>
     </div>
   )
 }
@@ -73,7 +73,7 @@ export function Analisis() {
             <div className="glass-card p-3 text-center">
               <p className="stat-label text-[10px]">Ingresos</p>
               <p className="text-base font-black text-white mt-1">
-                C$ {data.totalSemana >= 1000
+                L {data.totalSemana >= 1000
                   ? `${(data.totalSemana / 1000).toFixed(1)}k`
                   : data.totalSemana.toFixed(0)}
               </p>
@@ -85,7 +85,7 @@ export function Analisis() {
             <div className="glass-card p-3 text-center">
               <p className="stat-label text-[10px]">Promedio</p>
               <p className="text-base font-black text-white mt-1">
-                C$ {data.promedioVenta.toFixed(0)}
+                L {data.promedioVenta.toFixed(0)}
               </p>
             </div>
           </div>
@@ -152,7 +152,7 @@ export function Analisis() {
                           <p className="text-white text-xs font-medium truncate">{p.nombre}</p>
                           <div className="flex items-center gap-2 shrink-0 ml-2">
                             <span className="text-white/40 text-xs">{p.cantidad} uds</span>
-                            <span className="text-success text-xs font-bold">C$ {p.subtotal.toFixed(0)}</span>
+                            <span className="text-success text-xs font-bold">L {p.subtotal.toFixed(0)}</span>
                           </div>
                         </div>
                         <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
@@ -188,7 +188,7 @@ export function Analisis() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-white/40 text-xs">{c.porcentaje.toFixed(1)}%</span>
-                          <span className="text-white text-xs font-bold">C$ {c.totalVentas.toFixed(0)}</span>
+                          <span className="text-white text-xs font-bold">L {c.totalVentas.toFixed(0)}</span>
                         </div>
                       </div>
                       <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">

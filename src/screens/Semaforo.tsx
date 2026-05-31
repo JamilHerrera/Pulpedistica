@@ -131,7 +131,7 @@ export function Semaforo() {
           <div className="flex items-center gap-1.5 mt-1">
             <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
             <p className="text-white/40 text-xs">
-              Actualizado {lastUpdate.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              Actualizado {lastUpdate.toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </p>
           </div>
         </div>

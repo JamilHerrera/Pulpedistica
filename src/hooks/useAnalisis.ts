@@ -52,7 +52,7 @@ export function useAnalisis() {
       for (let i = 0; i < periodo; i++) {
         const d = new Date()
         d.setDate(d.getDate() - (periodo - 1 - i))
-        const key = d.toLocaleDateString('es-NI', { weekday: 'short', day: 'numeric' })
+        const key = d.toLocaleDateString('es-HN', { weekday: 'short', day: 'numeric' })
         diasMap.set(d.toISOString().split('T')[0], { dia: key, monto: 0, ventas: 0 })
       }
       ventas.forEach((v) => {

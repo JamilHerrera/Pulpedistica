@@ -52,7 +52,7 @@ export function Dashboard({ onNavigate, onToast }: Props) {
   }, [])
 
   const today = useMemo(() =>
-    new Date().toLocaleDateString('es-NI', { weekday: 'long', day: 'numeric', month: 'long' }),
+    new Date().toLocaleDateString('es-HN', { weekday: 'long', day: 'numeric', month: 'long' }),
   [])
 
   if (error) return (
@@ -102,7 +102,7 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                 <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Ventas hoy</p>
               </div>
               <p className="text-4xl font-black text-white tracking-tight">
-                C$ {stats.montoHoy.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                L {stats.montoHoy.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               <p className="text-white/50 text-sm mt-1">{stats.ventasHoy} transacciones</p>
               <div className="mt-4">
@@ -196,11 +196,11 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium">Venta registrada</p>
                       <p className="text-white/40 text-xs">
-                        {new Date(v.fecha_hora).toLocaleString('es-NI', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(v.fecha_hora).toLocaleString('es-HN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                     <p className="text-success font-bold text-sm">
-                      C$ {(v.monto_total ?? 0).toFixed(2)}
+                      L {(v.monto_total ?? 0).toFixed(2)}
                     </p>
                   </div>
                 ))}

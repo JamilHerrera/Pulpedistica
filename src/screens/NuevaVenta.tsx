@@ -35,7 +35,7 @@ function ProductSearchResult({
           type="number"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder="Precio unitario (C$)"
+          placeholder="Precio unitario (L)"
           className="input-field text-xs py-1.5 mt-1.5 h-8"
           min="0"
           step="0.5"
@@ -97,7 +97,7 @@ function CartItemRow({
               />
             ) : (
               <button onClick={() => setEditPrice(true)} className="text-xs text-brand-light font-medium">
-                C$ {item.precio_unitario.toFixed(2)} ✎
+                L {item.precio_unitario.toFixed(2)} ✎
               </button>
             )}
           </div>
@@ -123,7 +123,7 @@ function CartItemRow({
           </button>
         </div>
         <p className="text-white font-bold">
-          C$ {(item.cantidad * item.precio_unitario).toFixed(2)}
+                L {(item.cantidad * item.precio_unitario).toFixed(2)}
         </p>
       </div>
     </div>
@@ -169,7 +169,7 @@ export function NuevaVenta({ onToast }: Props) {
       setShowSuccess(true)
       setQuery('')
       setResults([])
-      onToast('¡Venta registrada!', `C$ ${total.toFixed(2)} guardado correctamente`, 'success')
+      onToast('¡Venta registrada!', `L ${total.toFixed(2)} guardado correctamente`, 'success')
       setTimeout(() => setShowSuccess(false), 2500)
     } else {
       onToast('Error al guardar', 'Revisa tu conexión e intenta de nuevo', 'error')
@@ -286,7 +286,7 @@ export function NuevaVenta({ onToast }: Props) {
             <div>
               <p className="text-white/40 text-xs uppercase tracking-wider">Total</p>
               <p className="text-3xl font-black text-white tracking-tight">
-                C$ {total.toFixed(2)}
+                L {total.toFixed(2)}
               </p>
             </div>
             <div className="flex items-center gap-1 text-white/30 text-xs">
