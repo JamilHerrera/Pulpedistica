@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #070714;
+    color: #fff;
+    overscroll-behavior: none;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-surface-card/80 backdrop-blur-xl border border-white/[0.06] rounded-2xl shadow-card;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-200 hover:bg-surface-elevated hover:shadow-card-hover;
+  }
+
+  .btn-primary {
+    @apply bg-brand text-white font-semibold rounded-2xl px-6 py-3 transition-all duration-200 active:scale-95 shadow-glow-brand hover:bg-brand-light;
+  }
+
+  .btn-ghost {
+    @apply bg-white/5 text-white font-medium rounded-xl px-4 py-2 transition-all duration-200 active:scale-95 hover:bg-white/10 border border-white/5;
+  }
+
+  .input-field {
+    @apply bg-surface-elevated border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30 transition-all duration-200 w-full;
+  }
+
+  .skeleton {
+    @apply bg-white/5 rounded-xl animate-pulse;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  .stat-label {
+    @apply text-xs text-white/40 uppercase tracking-wider font-medium;
+  }
+}
+
+@layer utilities {
+  .safe-top    { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-brand-light to-accent bg-clip-text text-transparent;
+  }
+
+  .bg-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .scrollable {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
