@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, Package, Check, X, ChevronDown } from 'lucide-react'
+import { Search, Plus, Package, Check, X, ChevronDown, Tag } from 'lucide-react'
 import { useInventario } from '../hooks/useInventario'
 import { SkeletonList } from '../components/ui/SkeletonCard'
 import type { Producto } from '../types'
@@ -90,24 +90,53 @@ function ProductoCard({
   )
 }
 
+const COLORES_SEMAFORO = [
+  { value: 'verde',    label: '🟢 Verde — Alta rotación'   },
+  { value: 'amarillo', label: '🟡 Amarillo — Rotación media' },
+  { value: 'rojo',     label: '🔴 Rojo — Baja rotación'    },
+  { value: 'azul',     label: '🔵 Azul — Especiales'       },
+]
+
 function AddProductModal({
-  categorias, onAdd, onClose,
+  categorias, onAdd, onAddCategoria, onClose,
 }: {
   categorias: { id: string; nombre: string }[]
   onAdd: (nombre: string, stock: number, catId: string) => Promise<boolean>
+  onAddCategoria: (nombre: string, color: string) => Promise<string | null>
   onClose: () => void
 }) {
+  const [tab, setTab] = useState<'producto' | 'categoria'>('producto')
+
+  // Producto
   const [nombre, setNombre] = useState('')
   const [stock, setStock] = useState('0')
   const [catId, setCatId] = useState(categorias[0]?.id ?? '')
   const [saving, setSaving] = useState(false)
 
-  const handleSubmit = async () => {
-    if (!nombre.trim() || !catId) return
+  // Categoría nueva
+  const [catNombre, setCatNombre] = useState('')
+  const [catColor, setCatColor] = useState('verde')
+  const [savingCat, setSavingCat] = useState(false)
+
+  const handleSubmitProducto = async () => {
+    if (!nombre.trim()) return
+    if (!catId) { setTab('categoria'); return }
     setSaving(true)
     const ok = await onAdd(nombre.trim(), parseInt(stock, 10) || 0, catId)
     setSaving(false)
     if (ok) onClose()
+  }
+
+  const handleSubmitCategoria = async () => {
+    if (!catNombre.trim()) return
+    setSavingCat(true)
+    const newId = await onAddCategoria(catNombre.trim(), catColor)
+    setSavingCat(false)
+    if (newId) {
+      setCatId(newId)
+      setCatNombre('')
+      setTab('producto')
+    }
   }
 
   return (
@@ -118,46 +147,124 @@ function AddProductModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-bold text-lg">Nuevo Producto</h2>
+          <h2 className="text-white font-bold text-lg">
+            {tab === 'producto' ? 'Nuevo Producto' : 'Nueva Categoría'}
+          </h2>
           <button onClick={onClose} className="text-white/30"><X size={20} /></button>
         </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre</label>
-            <input value={nombre} onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej: Arroz 1 lb" className="input-field" />
-          </div>
-          <div>
-            <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Stock inicial</label>
-            <input type="number" value={stock} onChange={(e) => setStock(e.target.value)}
-              className="input-field" min="0" />
-          </div>
-          <div>
-            <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Categoría</label>
-            <div className="relative">
-              <select value={catId} onChange={(e) => setCatId(e.target.value)}
-                className="input-field appearance-none pr-8">
-                {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-            </div>
-          </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTab('producto')}
+            className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              tab === 'producto' ? 'bg-brand text-white' : 'bg-white/5 text-white/50 border border-white/8'
+            }`}
+          >
+            <Plus size={12} /> Producto
+          </button>
+          <button
+            onClick={() => setTab('categoria')}
+            className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              tab === 'categoria' ? 'bg-brand text-white' : 'bg-white/5 text-white/50 border border-white/8'
+            }`}
+          >
+            <Tag size={12} /> Categoría
+          </button>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={saving || !nombre.trim()}
-          className="btn-primary w-full flex items-center justify-center gap-2"
-        >
-          {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
-          Guardar producto
-        </button>
+
+        {tab === 'producto' ? (
+          <>
+            <div className="space-y-3">
+              <div>
+                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre del producto</label>
+                <input value={nombre} onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Arroz 1 lb" className="input-field" autoFocus />
+              </div>
+              <div>
+                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Stock inicial</label>
+                <input type="number" value={stock} onChange={(e) => setStock(e.target.value)}
+                  className="input-field" min="0" />
+              </div>
+              <div>
+                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Categoría</label>
+                {categorias.length === 0 ? (
+                  <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 text-warning text-xs flex items-center gap-2">
+                    <Tag size={14} />
+                    <span>No hay categorías. Crea una primero en la pestaña <strong>Categoría</strong>.</span>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <select
+                      value={catId}
+                      onChange={(e) => setCatId(e.target.value)}
+                      className="input-field appearance-none pr-8"
+                    >
+                      <option value="">— Selecciona una categoría —</option>
+                      {categorias.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleSubmitProducto}
+              disabled={saving || !nombre.trim() || !catId}
+              className={`w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                saving || !nombre.trim() || !catId
+                  ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-brand to-brand-dark text-white shadow-glow-brand'
+              }`}
+            >
+              {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+              Guardar producto
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div>
+                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre de la categoría</label>
+                <input value={catNombre} onChange={(e) => setCatNombre(e.target.value)}
+                  placeholder="Ej: Granos básicos" className="input-field" autoFocus />
+              </div>
+              <div>
+                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Color semáforo</label>
+                <div className="relative">
+                  <select value={catColor} onChange={(e) => setCatColor(e.target.value)}
+                    className="input-field appearance-none pr-8">
+                    {COLORES_SEMAFORO.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleSubmitCategoria}
+              disabled={savingCat || !catNombre.trim()}
+              className={`w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                savingCat || !catNombre.trim()
+                  ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-accent to-brand text-white'
+              }`}
+            >
+              {savingCat ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Tag size={16} />}
+              Crear categoría
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
 export function Inventario({ onToast }: Props) {
-  const { productos, categorias, loading, error, updatingId, actualizarStock, agregarProducto, refetch } = useInventario()
+  const { productos, categorias, loading, error, updatingId, actualizarStock, agregarProducto, agregarCategoria, refetch } = useInventario()
   const [query, setQuery] = useState('')
   const [catFilter, setCatFilter] = useState<string>('todos')
   const [soloAlertas, setSoloAlertas] = useState(false)
@@ -269,6 +376,12 @@ export function Inventario({ onToast }: Props) {
             if (ok) onToast('Producto agregado', nombre, 'success')
             else onToast('Error al agregar', undefined, 'error')
             return ok
+          }}
+          onAddCategoria={async (nombre, color) => {
+            const id = await agregarCategoria(nombre, color)
+            if (id) onToast('Categoría creada', nombre, 'success')
+            else onToast('Error al crear categoría', undefined, 'error')
+            return id
           }}
         />
       )}

@@ -42,7 +42,7 @@ export function useAnalisis() {
       ])
 
       const ventas = ventasRes.data ?? []
-      const detalles = (detallesRes.data ?? []) as Array<{
+      const detalles = (detallesRes.data ?? []) as unknown as Array<{
         cantidad: number
         subtotal: number
         productos: { id: string; nombre: string; categorias: { nombre: string; color_semaforo: string } | null } | null

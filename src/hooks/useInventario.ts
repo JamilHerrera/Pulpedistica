@@ -82,6 +82,25 @@ export function useInventario() {
     [fetchData],
   )
 
+  const agregarCategoria = useCallback(
+    async (nombre: string, color_semaforo: string): Promise<string | null> => {
+      try {
+        const { data, error } = await supabase
+          .from('categorias')
+          .insert({ nombre, color_semaforo })
+          .select()
+          .single()
+        if (error) throw error
+        await fetchData()
+        return data?.id ?? null
+      } catch (e) {
+        console.error('Error agregando categoría:', e)
+        return null
+      }
+    },
+    [fetchData],
+  )
+
   return {
     productos,
     categorias,
@@ -90,6 +109,7 @@ export function useInventario() {
     updatingId,
     actualizarStock,
     agregarProducto,
+    agregarCategoria,
     refetch: fetchData,
   }
 }

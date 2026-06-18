@@ -13,7 +13,6 @@ let toastCounter = 0
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('dashboard')
-  const [cartCount, setCartCount] = useState(0)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
   const addToast = useCallback(
@@ -50,7 +49,7 @@ export default function App() {
         </div>
 
         {/* Bottom navigation */}
-        <BottomNav active={screen} onChange={setScreen} cartCount={cartCount} />
+        <BottomNav active={screen} onChange={setScreen} cartCount={0} />
       </div>
     </MobileWrapper>
   )

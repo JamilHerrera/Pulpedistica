@@ -11,7 +11,7 @@ const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
 interface Props {
   onNavigate: (s: Screen) => void
-  onToast: (t: string, m?: string, type?: 'success'|'error'|'warning'|'info') => void
+  onToast?: (t: string, m?: string, type?: 'success'|'error'|'warning'|'info') => void
 }
 
 function MiniBarChart({ values }: { values: number[] }) {
@@ -41,7 +41,7 @@ function MiniBarChart({ values }: { values: number[] }) {
   )
 }
 
-export function Dashboard({ onNavigate, onToast }: Props) {
+export function Dashboard({ onNavigate }: Props) {
   const { stats, loading, error, refetch } = useDashboard()
 
   const greeting = useMemo(() => {

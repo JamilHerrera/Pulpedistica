@@ -69,7 +69,7 @@ export function useDashboard() {
         ventasPorDia[idx] += v.monto_total ?? 0
       })
 
-      const topRaw = (topRes.data ?? []) as Array<{ producto_id: string; cantidad: number; productos: { nombre: string } | null }>
+        const topRaw = (topRes.data ?? []) as unknown as Array<{ producto_id: string; cantidad: number; productos: { nombre: string } | null }>
       const topMap = new Map<string, { nombre: string; cantidad: number }>()
       topRaw.forEach((d) => {
         const nombre = d.productos?.nombre ?? 'Desconocido'
@@ -87,7 +87,7 @@ export function useDashboard() {
         totalProductos: productos.length,
         ventasEsta_semana: ventasPorDia,
         topProductos,
-        ventasRecientes: (recientesRes.data ?? []) as Venta[],
+        ventasRecientes: (recientesRes.data ?? []) as unknown as Venta[],
       })
     } catch (e) {
       setError('Error cargando datos del dashboard')
