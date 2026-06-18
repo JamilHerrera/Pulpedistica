@@ -90,7 +90,15 @@ export function useInventario() {
           .insert({ nombre, color_semaforo })
           .select()
           .single()
-        if (error) throw error
+        if (error) {
+          console.error('Supabase error al agregar categoría:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+          })
+          throw error
+        }
         await fetchData()
         return data?.id ?? null
       } catch (e) {

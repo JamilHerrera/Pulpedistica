@@ -117,18 +117,23 @@ function AddProductModal({
   const [catNombre, setCatNombre] = useState('')
   const [catColor, setCatColor] = useState('verde')
   const [savingCat, setSavingCat] = useState(false)
+  const [catError, setCatError] = useState<string | null>(null)
+  const [prodError, setProdError] = useState<string | null>(null)
 
   const handleSubmitProducto = async () => {
-    if (!nombre.trim()) return
+    if (!nombre.trim()) { setProdError('Escribe el nombre del producto'); return }
     if (!catId) { setTab('categoria'); return }
+    setProdError(null)
     setSaving(true)
     const ok = await onAdd(nombre.trim(), parseInt(stock, 10) || 0, catId)
     setSaving(false)
     if (ok) onClose()
+    else setProdError('No se pudo guardar. Verifica tu conexión a Supabase.')
   }
 
   const handleSubmitCategoria = async () => {
-    if (!catNombre.trim()) return
+    if (!catNombre.trim()) { setCatError('Escribe el nombre de la categoría'); return }
+    setCatError(null)
     setSavingCat(true)
     const newId = await onAddCategoria(catNombre.trim(), catColor)
     setSavingCat(false)
@@ -136,6 +141,8 @@ function AddProductModal({
       setCatId(newId)
       setCatNombre('')
       setTab('producto')
+    } else {
+      setCatError('No se pudo crear. Verifica la conexión o los permisos de Supabase (RLS).')
     }
   }
 
@@ -210,11 +217,16 @@ function AddProductModal({
                 )}
               </div>
             </div>
+            {prodError && (
+              <div className="px-3 py-2 rounded-xl bg-danger/15 border border-danger/25 text-danger text-xs">
+                ⚠️ {prodError}
+              </div>
+            )}
             <button
               onClick={handleSubmitProducto}
-              disabled={saving || !nombre.trim() || !catId}
+              disabled={saving}
               className={`w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
-                saving || !nombre.trim() || !catId
+                saving
                   ? 'bg-white/10 text-white/30 cursor-not-allowed'
                   : 'bg-gradient-to-r from-brand to-brand-dark text-white shadow-glow-brand'
               }`}
@@ -228,8 +240,13 @@ function AddProductModal({
             <div className="space-y-3">
               <div>
                 <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre de la categoría</label>
-                <input value={catNombre} onChange={(e) => setCatNombre(e.target.value)}
-                  placeholder="Ej: Granos básicos" className="input-field" autoFocus />
+                <input
+                  value={catNombre}
+                  onChange={(e) => { setCatNombre(e.target.value); setCatError(null) }}
+                  placeholder="Ej: Granos básicos"
+                  className="input-field"
+                  autoFocus
+                />
               </div>
               <div>
                 <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Color semáforo</label>
@@ -244,11 +261,16 @@ function AddProductModal({
                 </div>
               </div>
             </div>
+            {catError && (
+              <div className="px-3 py-2 rounded-xl bg-danger/15 border border-danger/25 text-danger text-xs">
+                ⚠️ {catError}
+              </div>
+            )}
             <button
               onClick={handleSubmitCategoria}
-              disabled={savingCat || !catNombre.trim()}
+              disabled={savingCat}
               className={`w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
-                savingCat || !catNombre.trim()
+                savingCat
                   ? 'bg-white/10 text-white/30 cursor-not-allowed'
                   : 'bg-gradient-to-r from-accent to-brand text-white'
               }`}
