@@ -83,11 +83,11 @@ export function useInventario() {
   )
 
   const agregarCategoria = useCallback(
-    async (nombre: string, color_semaforo: string): Promise<string | null> => {
+    async (nombre: string): Promise<string | null> => {
       try {
         const { data, error } = await supabase
           .from('categorias')
-          .insert({ nombre, color_semaforo })
+          .insert({ nombre, color_semaforo: 'verde' })
           .select()
           .single()
         if (error) {

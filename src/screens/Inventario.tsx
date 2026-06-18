@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, Package, Check, X, ChevronDown, Tag } from 'lucide-react'
+import { Search, Plus, Package, Check, X, ChevronDown, Tag, Info } from 'lucide-react'
 import { useInventario } from '../hooks/useInventario'
 import { SkeletonList } from '../components/ui/SkeletonCard'
 import type { Producto } from '../types'
@@ -90,19 +90,13 @@ function ProductoCard({
   )
 }
 
-const COLORES_SEMAFORO = [
-  { value: 'verde',    label: '🟢 Verde — Alta rotación'   },
-  { value: 'amarillo', label: '🟡 Amarillo — Rotación media' },
-  { value: 'rojo',     label: '🔴 Rojo — Baja rotación'    },
-  { value: 'azul',     label: '🔵 Azul — Especiales'       },
-]
 
 function AddProductModal({
   categorias, onAdd, onAddCategoria, onClose,
 }: {
   categorias: { id: string; nombre: string }[]
   onAdd: (nombre: string, stock: number, catId: string) => Promise<boolean>
-  onAddCategoria: (nombre: string, color: string) => Promise<string | null>
+  onAddCategoria: (nombre: string) => Promise<string | null>
   onClose: () => void
 }) {
   const [tab, setTab] = useState<'producto' | 'categoria'>('producto')
@@ -115,7 +109,6 @@ function AddProductModal({
 
   // Categoría nueva
   const [catNombre, setCatNombre] = useState('')
-  const [catColor, setCatColor] = useState('verde')
   const [savingCat, setSavingCat] = useState(false)
   const [catError, setCatError] = useState<string | null>(null)
   const [prodError, setProdError] = useState<string | null>(null)
@@ -135,7 +128,7 @@ function AddProductModal({
     if (!catNombre.trim()) { setCatError('Escribe el nombre de la categoría'); return }
     setCatError(null)
     setSavingCat(true)
-    const newId = await onAddCategoria(catNombre.trim(), catColor)
+    const newId = await onAddCategoria(catNombre.trim())
     setSavingCat(false)
     if (newId) {
       setCatId(newId)
@@ -248,17 +241,11 @@ function AddProductModal({
                   autoFocus
                 />
               </div>
-              <div>
-                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Color semáforo</label>
-                <div className="relative">
-                  <select value={catColor} onChange={(e) => setCatColor(e.target.value)}
-                    className="input-field appearance-none pr-8">
-                    {COLORES_SEMAFORO.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                </div>
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-brand/10 border border-brand/20">
+                <Info size={14} className="text-brand-light shrink-0 mt-0.5" />
+                <p className="text-white/50 text-xs leading-relaxed">
+                  La rotación se calcula <strong className="text-white/70">automáticamente</strong> según las ventas reales. El Semáforo clasifica cada producto en tiempo real.
+                </p>
               </div>
             </div>
             {catError && (
@@ -399,8 +386,8 @@ export function Inventario({ onToast }: Props) {
             else onToast('Error al agregar', undefined, 'error')
             return ok
           }}
-          onAddCategoria={async (nombre, color) => {
-            const id = await agregarCategoria(nombre, color)
+          onAddCategoria={async (nombre) => {
+            const id = await agregarCategoria(nombre)
             if (id) onToast('Categoría creada', nombre, 'success')
             else onToast('Error al crear categoría', undefined, 'error')
             return id
