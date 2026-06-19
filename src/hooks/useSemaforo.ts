@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-export type NivelRotacion = 'alta' | 'media' | 'baja' | 'sin_movimiento'
+export type NivelRotacion = 'alta' | 'media' | 'baja'
 
 export interface ProductoConRotacion {
   id: string
@@ -24,6 +24,7 @@ export interface TotalesSemaforo {
   productos: number
   vendidos7d: number
   vendidos30d: number
+  sinMovimiento: number
 }
 
 // Umbrales de unidades vendidas para clasificar rotación
@@ -36,11 +37,10 @@ function calcularNivel(unidades: number, dias: 7 | 30): NivelRotacion {
   const u = UMBRALES[dias]
   if (unidades >= u.alta)  return 'alta'
   if (unidades >= u.media) return 'media'
-  if (unidades >= 1)       return 'baja'
-  return 'sin_movimiento'
+  return 'baja'  // includes 0-sale products (shown with SIN VENTAS badge)
 }
 
-const ORDEN_NIVELES: NivelRotacion[] = ['alta', 'media', 'baja', 'sin_movimiento']
+const ORDEN_NIVELES: NivelRotacion[] = ['alta', 'media', 'baja']
 
 export function useSemaforo() {
   const [periodo, setPeriodo] = useState<7 | 30>(30)
@@ -126,10 +126,12 @@ export function useSemaforo() {
       })
 
       setGrupos(nuevosGrupos)
+      const sinMov = allProds.filter(p => (periodo === 7 ? p.unidades7d : p.unidades30d) === 0).length
       setTotales({
-        productos:   allProds.length,
-        vendidos7d:  Array.from(map7d.values()).reduce((s, v) => s + v, 0),
-        vendidos30d: Array.from(map30d.values()).reduce((s, v) => s + v, 0),
+        productos:    allProds.length,
+        vendidos7d:   Array.from(map7d.values()).reduce((s, v) => s + v, 0),
+        vendidos30d:  Array.from(map30d.values()).reduce((s, v) => s + v, 0),
+        sinMovimiento: sinMov,
       })
       setLastUpdate(new Date())
     } catch (e) {

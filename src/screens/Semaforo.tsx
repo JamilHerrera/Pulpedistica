@@ -50,17 +50,6 @@ const NIVEL_CONFIG: Record<NivelRotacion, {
     bar:      'bg-danger',
     Icon:     TrendingDown,
   },
-  sin_movimiento: {
-    label:    'Sin movimiento',
-    sublabel: 'Cero ventas en el período',
-    emoji:    '⚫',
-    dot:      'bg-white/25',
-    bg:       'bg-white/3',
-    ring:     'border-white/10',
-    textColor:'text-white/40',
-    bar:      'bg-white/20',
-    Icon:     Package,
-  },
 }
 
 // ─── Fila de producto ──────────────────────────────────────────────────────────
@@ -68,9 +57,9 @@ const NIVEL_CONFIG: Record<NivelRotacion, {
 function ProductRow({
   producto, periodo, bar,
 }: { producto: ProductoConRotacion; periodo: 7 | 30; bar: string }) {
-  const unidades = periodo === 7 ? producto.unidades7d : producto.unidades30d
-  const stockMax = Math.max(30, producto.stock_actual)
-  const stockPct = Math.min(100, (producto.stock_actual / stockMax) * 100)
+  const unidades  = periodo === 7 ? producto.unidades7d : producto.unidades30d
+  const stockMax  = Math.max(30, producto.stock_actual)
+  const stockPct  = Math.min(100, (producto.stock_actual / stockMax) * 100)
   const stockColor = producto.stock_actual === 0
     ? 'bg-danger' : producto.stock_actual <= 5
     ? 'bg-warning' : 'bg-white/25'
@@ -78,8 +67,13 @@ function ProductRow({
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-white text-sm font-medium truncate">{producto.nombre}</p>
+          {unidades === 0 && (
+            <span className="text-[9px] font-bold text-warning bg-warning/10 border border-warning/20 px-1.5 py-0.5 rounded-full shrink-0">
+              SIN VENTAS
+            </span>
+          )}
           {producto.stock_actual === 0 && (
             <span className="text-[9px] font-bold text-danger bg-danger/10 border border-danger/20 px-1.5 py-0.5 rounded-full shrink-0">
               AGOTADO
@@ -89,7 +83,6 @@ function ProductRow({
         {producto.categorias && (
           <p className="text-white/30 text-xs truncate">{producto.categorias.nombre}</p>
         )}
-        {/* Stock bar */}
         <div className="flex items-center gap-2 mt-1.5">
           <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-700 ${stockColor}`}
@@ -100,7 +93,6 @@ function ProductRow({
           </span>
         </div>
       </div>
-      {/* Unidades vendidas */}
       <div className="shrink-0 text-right">
         <p className={`font-black text-lg leading-none ${unidades > 0 ? 'text-white' : 'text-white/20'}`}>
           {unidades}
@@ -184,7 +176,7 @@ export function Semaforo() {
 
   const resumen = grupos.reduce<Record<NivelRotacion, number>>(
     (acc, g) => { acc[g.nivel] = g.productos.length; return acc },
-    { alta: 0, media: 0, baja: 0, sin_movimiento: 0 },
+    { alta: 0, media: 0, baja: 0 },
   )
 
   return (
@@ -238,6 +230,10 @@ export function Semaforo() {
               </div>
             )
           })}
+          <div className="text-center">
+            <p className="text-xl font-black text-white/30">{totales.sinMovimiento}</p>
+            <p className="text-white/30 text-[10px] leading-tight mt-0.5">⚫</p>
+          </div>
         </div>
       )}
 
@@ -275,9 +271,8 @@ export function Semaforo() {
             </div>
           )
         })}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/3 border border-white/10">
-          <div className="w-2 h-2 rounded-full bg-white/25" />
-          <span className="text-[11px] font-medium text-white/40">0 uds</span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-warning/8 border border-warning/15">
+          <span className="text-[11px] font-medium text-warning/60">⚠️ 0 uds = badge SIN VENTAS</span>
         </div>
       </div>
 
