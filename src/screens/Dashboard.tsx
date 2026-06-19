@@ -1,17 +1,85 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   TrendingUp, AlertTriangle, ShoppingBag, Package,
-  ChevronRight, Zap, RefreshCw,
+  ChevronRight, Zap, RefreshCw, Ban, X,
 } from 'lucide-react'
 import { useDashboard } from '../hooks/useDashboard'
 import { SkeletonStats, SkeletonList } from '../components/ui/SkeletonCard'
-import type { Screen } from '../types'
+import type { Screen, Venta } from '../types'
 
 const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
 interface Props {
   onNavigate: (s: Screen) => void
   onToast?: (t: string, m?: string, type?: 'success'|'error'|'warning'|'info') => void
+}
+
+// ─── Modal de confirmación de anulación ───────────────────────────────────────
+function AnularModal({
+  venta, onConfirm, onClose, loading,
+}: { venta: Venta; onConfirm: () => void; onClose: () => void; loading: boolean }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[390px] glass-card rounded-t-3xl p-5 pb-8 space-y-4 animate-slide-up border-t-2 border-danger/40"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-danger/20 flex items-center justify-center">
+              <Ban size={16} className="text-danger" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold text-base leading-tight">Anular venta</h2>
+              <p className="text-white/35 text-xs">Esta acción no se puede deshacer</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/30"><X size={20} /></button>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+          <p className="text-white/40 text-xs uppercase tracking-wider">Venta a anular</p>
+          <p className="text-white font-black text-2xl">
+            L {(venta.monto_total ?? 0).toFixed(2)}
+          </p>
+          <p className="text-white/40 text-xs">
+            {new Date(venta.fecha_hora).toLocaleString('es-HN', {
+              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+            })}
+          </p>
+        </div>
+
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20">
+          <AlertTriangle size={13} className="text-warning shrink-0 mt-0.5" />
+          <p className="text-warning/80 text-xs leading-relaxed">
+            Se marcará como <strong>Anulada</strong> en la base de datos y el stock de los productos involucrados se restaurará automáticamente.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-2xl bg-white/8 text-white/60 font-semibold text-sm active:scale-95 transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`flex-1 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all ${
+              loading ? 'bg-danger/30 text-danger/40' : 'bg-danger text-white'
+            }`}
+          >
+            {loading
+              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <><Ban size={14} /> Confirmar anulación</>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function MiniBarChart({ values }: { values: number[] }) {
@@ -41,8 +109,20 @@ function MiniBarChart({ values }: { values: number[] }) {
   )
 }
 
-export function Dashboard({ onNavigate }: Props) {
-  const { stats, loading, error, refetch } = useDashboard()
+export function Dashboard({ onNavigate, onToast }: Props) {
+  const { stats, loading, error, refetch, anularVenta } = useDashboard()
+  const [ventaParaAnular, setVentaParaAnular] = useState<Venta | null>(null)
+  const [anulando, setAnulando] = useState(false)
+
+  const handleAnular = async () => {
+    if (!ventaParaAnular) return
+    setAnulando(true)
+    const ok = await anularVenta(ventaParaAnular.id)
+    setAnulando(false)
+    setVentaParaAnular(null)
+    if (ok) onToast?.('Venta anulada', `L ${ventaParaAnular.monto_total.toFixed(2)} revertido`, 'success')
+    else onToast?.('Error al anular', 'Revisa tu conexión', 'error')
+  }
 
   const greeting = useMemo(() => {
     const h = new Date().getHours()
@@ -188,22 +268,56 @@ export function Dashboard({ onNavigate }: Props) {
             <div>
               <p className="text-white font-semibold text-sm mb-3">Ventas recientes</p>
               <div className="flex flex-col gap-2">
-                {stats.ventasRecientes.map((v) => (
-                  <div key={v.id} className="glass-card px-4 py-3 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
-                      <ShoppingBag size={16} className="text-accent" />
+                {stats.ventasRecientes.map((v, i) => {
+                  const esAnulada = v.anulada === true
+                  const esMasReciente = i === 0 && !esAnulada
+                  return (
+                    <div
+                      key={v.id}
+                      className={`glass-card px-4 py-3 flex items-center gap-3 transition-all ${
+                        esAnulada ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        esAnulada ? 'bg-danger/10' : 'bg-accent/10'
+                      }`}>
+                        {esAnulada
+                          ? <Ban size={16} className="text-danger" />
+                          : <ShoppingBag size={16} className="text-accent" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium ${esAnulada ? 'text-white/40 line-through' : 'text-white'}`}>
+                            Venta registrada
+                          </p>
+                          {esAnulada && (
+                            <span className="text-[9px] font-bold text-danger bg-danger/10 border border-danger/20 px-1.5 py-0.5 rounded-full">
+                              ANULADA
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-white/40 text-xs">
+                          {new Date(v.fecha_hora).toLocaleString('es-HN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <p className={`font-bold text-sm ${esAnulada ? 'text-white/25 line-through' : 'text-success'}`}>
+                          L {(v.monto_total ?? 0).toFixed(2)}
+                        </p>
+                        {esMasReciente && (
+                          <button
+                            onClick={() => setVentaParaAnular(v)}
+                            className="w-7 h-7 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center active:scale-90 transition-all"
+                            title="Anular esta venta"
+                          >
+                            <Ban size={13} className="text-danger" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium">Venta registrada</p>
-                      <p className="text-white/40 text-xs">
-                        {new Date(v.fecha_hora).toLocaleString('es-HN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <p className="text-success font-bold text-sm">
-                      L {(v.monto_total ?? 0).toFixed(2)}
-                    </p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -219,6 +333,16 @@ export function Dashboard({ onNavigate }: Props) {
           )}
         </>
       ) : null}
+
+      {/* Modal de anulación */}
+      {ventaParaAnular && (
+        <AnularModal
+          venta={ventaParaAnular}
+          onConfirm={handleAnular}
+          onClose={() => setVentaParaAnular(null)}
+          loading={anulando}
+        />
+      )}
     </div>
   )
 }

@@ -33,6 +33,7 @@ export function useAnalisis() {
           .from('ventas')
           .select('id, fecha_hora, monto_total')
           .gte('fecha_hora', desde.toISOString())
+          .eq('anulada', false)
           .order('fecha_hora', { ascending: true }),
 
         supabase

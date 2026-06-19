@@ -17,6 +17,7 @@ export interface Venta {
   id: string
   fecha_hora: string
   monto_total: number
+  anulada?: boolean
   detalle_ventas?: DetalleVenta[]
 }
 

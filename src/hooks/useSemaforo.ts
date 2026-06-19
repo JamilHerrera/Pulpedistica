@@ -68,7 +68,8 @@ export function useSemaforo() {
         supabase
           .from('ventas')
           .select('fecha_hora, detalle_ventas(producto_id, cantidad)')
-          .gte('fecha_hora', desde30d),
+          .gte('fecha_hora', desde30d)
+          .eq('anulada', false),
       ])
 
       if (prodRes.error)   throw prodRes.error

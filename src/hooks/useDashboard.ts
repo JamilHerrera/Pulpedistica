@@ -24,25 +24,29 @@ export function useDashboard() {
       inicioSemana.setHours(0, 0, 0, 0)
 
       const [ventasHoyRes, semanaRes, productosRes, recientesRes, topRes] = await Promise.all([
+        // Métricas: excluir anuladas
         supabase
           .from('ventas')
           .select('id, monto_total')
           .gte('fecha_hora', hoy.toISOString())
-          .lte('fecha_hora', finHoy.toISOString()),
+          .lte('fecha_hora', finHoy.toISOString())
+          .eq('anulada', false),
 
         supabase
           .from('ventas')
           .select('fecha_hora, monto_total')
           .gte('fecha_hora', inicioSemana.toISOString())
+          .eq('anulada', false)
           .order('fecha_hora', { ascending: true }),
 
         supabase
           .from('productos')
           .select('id, stock_actual'),
 
+        // Historial reciente: incluir anuladas (para mostrarlas con badge)
         supabase
           .from('ventas')
-          .select('id, fecha_hora, monto_total, detalle_ventas(id, cantidad, subtotal, productos(nombre))')
+          .select('id, fecha_hora, monto_total, anulada, detalle_ventas(id, cantidad, subtotal, productos(nombre))')
           .order('fecha_hora', { ascending: false })
           .limit(5),
 
@@ -54,9 +58,9 @@ export function useDashboard() {
           .limit(5),
       ])
 
-      const ventasHoy = ventasHoyRes.data ?? []
+      const ventasHoy    = ventasHoyRes.data ?? []
       const ventasSemana = semanaRes.data ?? []
-      const productos = productosRes.data ?? []
+      const productos    = productosRes.data ?? []
 
       const montoHoy = ventasHoy.reduce((s, v) => s + (v.monto_total ?? 0), 0)
       const productosStockBajo = productos.filter((p) => p.stock_actual <= STOCK_MIN).length
@@ -69,7 +73,9 @@ export function useDashboard() {
         ventasPorDia[idx] += v.monto_total ?? 0
       })
 
-        const topRaw = (topRes.data ?? []) as unknown as Array<{ producto_id: string; cantidad: number; productos: { nombre: string } | null }>
+      const topRaw = (topRes.data ?? []) as unknown as Array<{
+        producto_id: string; cantidad: number; productos: { nombre: string } | null
+      }>
       const topMap = new Map<string, { nombre: string; cantidad: number }>()
       topRaw.forEach((d) => {
         const nombre = d.productos?.nombre ?? 'Desconocido'
@@ -97,6 +103,50 @@ export function useDashboard() {
     }
   }, [])
 
+  // Anular venta: marca como anulada y restaura el stock de los productos
+  const anularVenta = useCallback(async (ventaId: string): Promise<boolean> => {
+    try {
+      // Obtener detalle para restaurar stock
+      const { data: detalles, error: detErr } = await supabase
+        .from('detalle_ventas')
+        .select('producto_id, cantidad')
+        .eq('venta_id', ventaId)
+      if (detErr) throw detErr
+
+      // Marcar venta como anulada
+      const { error: ventaErr } = await supabase
+        .from('ventas')
+        .update({ anulada: true })
+        .eq('id', ventaId)
+      if (ventaErr) throw ventaErr
+
+      // Restaurar stock de cada producto involucrado
+      if (detalles && detalles.length > 0) {
+        await Promise.all(
+          detalles.map(async (d) => {
+            const { data: prod } = await supabase
+              .from('productos')
+              .select('stock_actual')
+              .eq('id', d.producto_id)
+              .single()
+            if (prod) {
+              await supabase
+                .from('productos')
+                .update({ stock_actual: prod.stock_actual + d.cantidad })
+                .eq('id', d.producto_id)
+            }
+          }),
+        )
+      }
+
+      await fetchStats()
+      return true
+    } catch (e) {
+      console.error('Error anulando venta:', e)
+      return false
+    }
+  }, [fetchStats])
+
   useEffect(() => {
     fetchStats()
 
@@ -112,5 +162,5 @@ export function useDashboard() {
     }
   }, [fetchStats])
 
-  return { stats, loading, error, refetch: fetchStats }
+  return { stats, loading, error, refetch: fetchStats, anularVenta }
 }
