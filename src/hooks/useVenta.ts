@@ -123,6 +123,54 @@ export function useVenta() {
     [priceCache],
   )
 
+  // Top products by frequency in detalle_ventas (client-side aggregation)
+  const getProductosFrecuentes = useCallback(async (): Promise<Producto[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('detalle_ventas')
+        .select('producto_id, cantidad, productos(id, nombre, stock_actual, categoria_id, categorias(id, nombre, color_semaforo))')
+        .limit(500)
+      if (error) throw error
+
+      const countMap = new Map<string, { producto: Producto; apariciones: number }>()
+      ;(data ?? []).forEach((dv: any) => {
+        if (!dv.productos) return
+        const pid = dv.producto_id as string
+        if (!countMap.has(pid)) {
+          countMap.set(pid, { producto: dv.productos as Producto, apariciones: 0 })
+        }
+        countMap.get(pid)!.apariciones += Number(dv.cantidad) || 1
+      })
+
+      return Array.from(countMap.values())
+        .sort((a, b) => b.apariciones - a.apariciones)
+        .slice(0, 8)
+        .map((e) => e.producto)
+        .filter((p) => p.stock_actual > 0)
+    } catch (e) {
+      console.error('Error obteniendo frecuentes:', e)
+      return []
+    }
+  }, [])
+
+  // Register a free-amount sale (no product, no stock change)
+  const registrarMontoLibre = useCallback(async (monto: number): Promise<boolean> => {
+    if (monto <= 0) return false
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('ventas')
+        .insert({ monto_total: monto, fecha_hora: new Date().toISOString() })
+      if (error) throw error
+      return true
+    } catch (e) {
+      console.error('Error registrando monto libre:', e)
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }, [])
+
   return {
     cart,
     total,
@@ -135,5 +183,7 @@ export function useVenta() {
     confirmarVenta,
     searchProductos,
     getCachedPrice,
+    getProductosFrecuentes,
+    registrarMontoLibre,
   }
 }
