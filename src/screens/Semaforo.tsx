@@ -2,7 +2,15 @@ import { useState } from 'react'
 import { RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Package } from 'lucide-react'
 import { useSemaforo } from '../hooks/useSemaforo'
 import type { GrupoRotacion, NivelRotacion, ProductoConRotacion } from '../hooks/useSemaforo'
-import { SkeletonList } from '../components/ui/SkeletonCard'
+
+function LoadingSpinner() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <div className="w-12 h-12 border-2 border-white/10 border-t-brand rounded-full animate-spin" />
+      <p className="text-white/30 text-sm">Recalculando rotación…</p>
+    </div>
+  )
+}
 
 // ─── Configuración visual por nivel ───────────────────────────────────────────
 
@@ -56,8 +64,8 @@ const NIVEL_CONFIG: Record<NivelRotacion, {
 
 function ProductRow({
   producto, periodo, bar,
-}: { producto: ProductoConRotacion; periodo: 7 | 30; bar: string }) {
-  const unidades  = periodo === 7 ? producto.unidades7d : producto.unidades30d
+}: { producto: ProductoConRotacion; periodo: 7 | 15 | 30; bar: string }) {
+  const unidades  = periodo === 7 ? producto.unidades7d : periodo === 15 ? producto.unidades15d : producto.unidades30d
   const stockMax  = Math.max(30, producto.stock_actual)
   const stockPct  = Math.min(100, (producto.stock_actual / stockMax) * 100)
   const stockColor = producto.stock_actual === 0
@@ -107,7 +115,7 @@ function ProductRow({
 
 function GrupoCard({
   grupo, periodo, defaultOpen,
-}: { grupo: GrupoRotacion; periodo: 7 | 30; defaultOpen: boolean }) {
+}: { grupo: GrupoRotacion; periodo: 7 | 15 | 30; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   const cfg = NIVEL_CONFIG[grupo.nivel]
   const { Icon } = cfg
@@ -170,8 +178,9 @@ export function Semaforo() {
   const { grupos, totales, loading, error, lastUpdate, periodo, setPeriodo, refetch } = useSemaforo()
 
   const UMBRALES_LABEL = {
-    7:  { alta: '≥ 7 uds', media: '3–6 uds', baja: '1–2 uds' },
-    30: { alta: '≥ 20 uds', media: '7–19 uds', baja: '1–6 uds' },
+    7:  { alta: '≥ 7 uds',  media: '3–6 uds',   baja: '1–2 uds' },
+    15: { alta: '≥ 12 uds', media: '5–11 uds',  baja: '1–4 uds' },
+    30: { alta: '≥ 20 uds', media: '7–19 uds',  baja: '1–6 uds' },
   }
 
   const resumen = grupos.reduce<Record<NivelRotacion, number>>(
@@ -201,19 +210,19 @@ export function Semaforo() {
         </button>
       </div>
 
-      {/* Toggle 7d / 30d */}
-      <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/8">
-        {([7, 30] as const).map((d) => (
+      {/* Toggle 7d / 15d / 30d */}
+      <div className="flex gap-1 p-1 bg-white/5 rounded-2xl border border-white/8">
+        {([7, 15, 30] as const).map((d) => (
           <button
             key={d}
             onClick={() => setPeriodo(d)}
-            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
               periodo === d
                 ? 'bg-brand text-white shadow-glow-brand'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
-            Últimos {d} días
+            {d} días
           </button>
         ))}
       </div>
@@ -242,7 +251,7 @@ export function Semaforo() {
         <div className="glass-card p-3 flex justify-between items-center">
           <div className="text-center flex-1">
             <p className="text-white font-black text-lg">
-              {periodo === 7 ? totales.vendidos7d : totales.vendidos30d}
+              {periodo === 7 ? totales.vendidos7d : periodo === 15 ? totales.vendidos15d : totales.vendidos30d}
             </p>
             <p className="text-white/35 text-[11px]">uds vendidas ({periodo}d)</p>
           </div>
@@ -263,7 +272,7 @@ export function Semaforo() {
       <div className="flex gap-2 flex-wrap">
         {(['alta', 'media', 'baja'] as NivelRotacion[]).map((nivel) => {
           const cfg = NIVEL_CONFIG[nivel]
-          const threshold = UMBRALES_LABEL[periodo][nivel as 'alta' | 'media' | 'baja']
+          const threshold = UMBRALES_LABEL[periodo as 7 | 15 | 30][nivel as 'alta' | 'media' | 'baja']
           return (
             <div key={nivel} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl ${cfg.bg} border ${cfg.ring}`}>
               <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
@@ -284,7 +293,7 @@ export function Semaforo() {
           <button onClick={refetch} className="btn-ghost text-sm">Reintentar</button>
         </div>
       ) : loading ? (
-        <SkeletonList rows={4} />
+        <LoadingSpinner />
       ) : (
         <div className="space-y-3">
           {grupos.map((grupo, i) => (

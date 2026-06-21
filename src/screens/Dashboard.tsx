@@ -1,17 +1,111 @@
 import { useMemo, useState } from 'react'
 import {
   TrendingUp, AlertTriangle, ShoppingBag, Package,
-  ChevronRight, Zap, RefreshCw, Ban, X,
+  ChevronRight, Zap, RefreshCw, Ban, X, Clock, Flame,
 } from 'lucide-react'
 import { useDashboard } from '../hooks/useDashboard'
+import { useEstancados } from '../hooks/useEstancados'
 import { SkeletonStats, SkeletonList } from '../components/ui/SkeletonCard'
 import type { Screen, Venta } from '../types'
+import type { ProductoEstancado } from '../hooks/useEstancados'
 
 const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
 interface Props {
   onNavigate: (s: Screen) => void
   onToast?: (t: string, m?: string, type?: 'success'|'error'|'warning'|'info') => void
+}
+
+// ─── Modal de productos estancados ────────────────────────────────────────────
+
+function EstancadosModal({
+  estancados, onClose,
+}: { estancados: ProductoEstancado[]; onClose: () => void }) {
+  const formatDias = (d: number) =>
+    d >= 999 ? 'Nunca vendido' : `${d} día${d !== 1 ? 's' : ''} sin venta`
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[390px] glass-card rounded-t-3xl pb-8 animate-slide-up border-t-2 border-orange-500/40 max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Cabecera */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/8 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center">
+              <Flame size={15} className="text-orange-400" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold text-base leading-tight">Riesgo de estancamiento</h2>
+              <p className="text-white/35 text-xs">{estancados.length} productos sin ventas 30+ días</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/30 active:scale-90 transition-all"><X size={20} /></button>
+        </div>
+
+        {/* Lista */}
+        <div className="overflow-y-auto flex-1 px-5 py-3 space-y-2">
+          {estancados.map((p) => {
+            const critico = p.diasSinVenta >= 30 || p.diasSinVenta >= 999
+            const color   = p.diasSinVenta >= 999 ? 'text-danger' : critico ? 'text-orange-400' : 'text-warning'
+            return (
+              <div key={p.id} className="glass-card p-3 flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  p.diasSinVenta >= 999 ? 'bg-danger/10' : 'bg-orange-500/10'
+                }`}>
+                  <Clock size={15} className={color} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold truncate">{p.nombre}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {p.categorias && (
+                      <span className="text-white/30 text-[10px]">{p.categorias.nombre}</span>
+                    )}
+                    <span className="text-white/20 text-[10px]">•</span>
+                    <span className="text-white/30 text-[10px]">{p.stock_actual} en stock</span>
+                  </div>
+                  <p className={`text-xs font-bold mt-1 ${color}`}>
+                    ⏱ {formatDias(p.diasSinVenta)}
+                  </p>
+                  {p.ultimaVenta && (
+                    <p className="text-white/25 text-[10px]">
+                      Última venta: {p.ultimaVenta.toLocaleDateString('es-HN', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                      })}
+                    </p>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className={`font-black text-xl leading-none ${color}`}>
+                    {p.diasSinVenta >= 999 ? '∞' : p.diasSinVenta}
+                  </p>
+                  <p className="text-white/25 text-[9px]">días</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Pie */}
+        <div className="px-5 pt-3 shrink-0">
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-orange-500/8 border border-orange-500/15 mb-3">
+            <AlertTriangle size={12} className="text-orange-400 shrink-0 mt-0.5" />
+            <p className="text-orange-300/70 text-xs leading-relaxed">
+              Considera ofertas o liquidación para liberar espacio y recuperar capital.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-2xl bg-white/8 text-white/60 font-semibold text-sm active:scale-95 transition-all"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Modal de confirmación de anulación ───────────────────────────────────────
@@ -111,8 +205,10 @@ function MiniBarChart({ values }: { values: number[] }) {
 
 export function Dashboard({ onNavigate, onToast }: Props) {
   const { stats, loading, error, refetch, anularVenta } = useDashboard()
-  const [ventaParaAnular, setVentaParaAnular] = useState<Venta | null>(null)
-  const [anulando, setAnulando] = useState(false)
+  const { estancados } = useEstancados()
+  const [ventaParaAnular,  setVentaParaAnular]  = useState<Venta | null>(null)
+  const [anulando,         setAnulando]         = useState(false)
+  const [showEstancados,   setShowEstancados]   = useState(false)
 
   const handleAnular = async () => {
     if (!ventaParaAnular) return
@@ -231,6 +327,30 @@ export function Dashboard({ onNavigate, onToast }: Props) {
             </div>
           )}
 
+          {/* Banner de productos estancados (US8) */}
+          {estancados.length > 0 && (
+            <button
+              onClick={() => setShowEstancados(true)}
+              className="w-full glass-card p-4 flex items-center gap-3 active:scale-[0.98] transition-all text-left"
+              style={{ borderColor: 'rgba(249,115,22,0.25)', border: '1px solid rgba(249,115,22,0.25)' }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+                <Flame size={18} className="text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
+                  <p className="text-orange-400 text-xs font-bold uppercase tracking-wider">Riesgo de Estancamiento</p>
+                </div>
+                <p className="text-white/70 text-sm mt-0.5">
+                  <span className="text-white font-bold">{estancados.length}</span> producto{estancados.length !== 1 ? 's' : ''} sin ventas en 30+ días
+                </p>
+                <p className="text-white/35 text-xs mt-0.5">Toca para ver la lista detallada →</p>
+              </div>
+              <ChevronRight size={16} className="text-white/30 shrink-0" />
+            </button>
+          )}
+
           {/* Top productos */}
           {stats.topProductos.length > 0 && (
             <div>
@@ -341,6 +461,14 @@ export function Dashboard({ onNavigate, onToast }: Props) {
           onConfirm={handleAnular}
           onClose={() => setVentaParaAnular(null)}
           loading={anulando}
+        />
+      )}
+
+      {/* Modal de productos estancados (US8) */}
+      {showEstancados && (
+        <EstancadosModal
+          estancados={estancados}
+          onClose={() => setShowEstancados(false)}
         />
       )}
     </div>
