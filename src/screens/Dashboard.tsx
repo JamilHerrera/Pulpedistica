@@ -108,6 +108,89 @@ function EstancadosModal({
   )
 }
 
+// ─── Modal de detalle de venta ────────────────────────────────────────────────
+
+function VentaDetalleModal({ venta, onClose }: { venta: Venta; onClose: () => void }) {
+  const detalles = venta.detalle_ventas ?? []
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[390px] glass-card rounded-t-3xl pb-8 animate-slide-up border-t-2 border-accent/40 max-h-[75vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Cabecera */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/8 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
+              <ShoppingBag size={16} className="text-accent" />
+            </div>
+            <div>
+              <p className="text-white/40 text-xs">
+                {new Date(venta.fecha_hora).toLocaleString('es-HN', {
+                  weekday: 'short', day: 'numeric', month: 'short',
+                  hour: '2-digit', minute: '2-digit',
+                })}
+              </p>
+              <p className="text-white font-black text-xl leading-tight">
+                L {(venta.monto_total ?? 0).toLocaleString('es-HN', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/30 active:scale-90 transition-all">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Lista de productos */}
+        <div className="overflow-y-auto flex-1 px-5 py-3">
+          {detalles.length === 0 ? (
+            <div className="text-center py-8">
+              <ShoppingBag size={28} className="text-white/15 mx-auto mb-2" />
+              <p className="text-white/35 text-sm">Venta de monto libre</p>
+              <p className="text-white/25 text-xs mt-1">Sin productos registrados en el catálogo</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <p className="text-white/35 text-xs uppercase tracking-wider mb-3">
+                {detalles.length} producto{detalles.length !== 1 ? 's' : ''} vendido{detalles.length !== 1 ? 's' : ''}
+              </p>
+              {detalles.map((d, i) => {
+                const nombre = (d as any).productos?.nombre ?? 'Producto'
+                const cantidad = d.cantidad ?? 0
+                const subtotal = d.subtotal ?? 0
+                return (
+                  <div key={d.id ?? i} className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0">
+                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                      <span className="text-white/40 text-xs font-bold">{cantidad}</span>
+                    </div>
+                    <p className="flex-1 text-white/80 text-sm truncate">{nombre}</p>
+                    <p className="text-success text-sm font-bold shrink-0">
+                      L {subtotal.toLocaleString('es-HN', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Pie con total */}
+        {detalles.length > 0 && (
+          <div className="px-5 pt-3 border-t border-white/8 shrink-0">
+            <div className="flex items-center justify-between py-2">
+              <p className="text-white/50 text-sm font-medium">Total</p>
+              <p className="text-white font-black text-lg">
+                L {(venta.monto_total ?? 0).toLocaleString('es-HN', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Modal de confirmación de anulación ───────────────────────────────────────
 function AnularModal({
   venta, onConfirm, onClose, loading,
@@ -207,6 +290,7 @@ export function Dashboard({ onNavigate, onToast }: Props) {
   const { stats, loading, error, refetch, anularVenta } = useDashboard()
   const { estancados } = useEstancados()
   const [ventaParaAnular,  setVentaParaAnular]  = useState<Venta | null>(null)
+  const [ventaDetalle,     setVentaDetalle]     = useState<Venta | null>(null)
   const [anulando,         setAnulando]         = useState(false)
   const [showEstancados,   setShowEstancados]   = useState(false)
 
@@ -392,9 +476,10 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                   const esAnulada = v.anulada === true
                   const esMasReciente = i === 0 && !esAnulada
                   return (
-                    <div
+                    <button
                       key={v.id}
-                      className={`glass-card px-4 py-3 flex items-center gap-3 transition-all ${
+                      onClick={() => setVentaDetalle(v)}
+                      className={`w-full glass-card px-4 py-3 flex items-center gap-3 transition-all active:scale-[0.98] text-left ${
                         esAnulada ? 'opacity-50' : ''
                       }`}
                     >
@@ -435,7 +520,7 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                           </button>
                         )}
                       </div>
-                    </div>
+                    </button>
                   )
                 })}
               </div>
@@ -461,6 +546,14 @@ export function Dashboard({ onNavigate, onToast }: Props) {
           onConfirm={handleAnular}
           onClose={() => setVentaParaAnular(null)}
           loading={anulando}
+        />
+      )}
+
+      {/* Modal de detalle de venta */}
+      {ventaDetalle && (
+        <VentaDetalleModal
+          venta={ventaDetalle}
+          onClose={() => setVentaDetalle(null)}
         />
       )}
 
