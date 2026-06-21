@@ -156,20 +156,26 @@ function VentaDetalleModal({ venta, onClose }: { venta: Venta; onClose: () => vo
                 {detalles.length} producto{detalles.length !== 1 ? 's' : ''} vendido{detalles.length !== 1 ? 's' : ''}
               </p>
               {detalles.map((d, i) => {
-                const nombre = (d as any).productos?.nombre ?? 'Producto'
-                const cantidad = d.cantidad ?? 0
-                const subtotal = d.subtotal ?? 0
-                return (
-                  <div key={d.id ?? i} className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0">
-                    <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                      <span className="text-white/40 text-xs font-bold">{cantidad}</span>
+                  const nombre    = (d as any).productos?.nombre ?? 'Producto'
+                  const cantidad  = d.cantidad ?? 0
+                  const subtotal  = d.subtotal ?? 0
+                  const precio    = cantidad > 0 ? subtotal / cantidad : 0
+                  return (
+                    <div key={d.id ?? i} className="py-2.5 border-b border-white/[0.05] last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                          <span className="text-white/40 text-xs font-bold">{cantidad}</span>
+                        </div>
+                        <p className="flex-1 text-white/80 text-sm font-medium truncate">{nombre}</p>
+                        <p className="text-success text-sm font-bold shrink-0">
+                          L {subtotal.toLocaleString('es-HN', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 ml-10 mt-0.5">
+                        <span className="text-white/25 text-xs">{cantidad} × L {precio.toLocaleString('es-HN', { minimumFractionDigits: 2 })}</span>
+                      </div>
                     </div>
-                    <p className="flex-1 text-white/80 text-sm truncate">{nombre}</p>
-                    <p className="text-success text-sm font-bold shrink-0">
-                      L {subtotal.toLocaleString('es-HN', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                )
+                  )
               })}
             </div>
           )}
