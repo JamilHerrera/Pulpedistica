@@ -1,16 +1,24 @@
 ```mermaid
-C4Context
-    title Diagrama de Contenedores (C4 Nivel 2) - Sistema Pulpedística
+flowchart TD
+    classDef person fill:#084298,stroke:#052c65,color:#fff,stroke-width:2px;
+    classDef container fill:#1e293b,stroke:#3b82f6,color:#fff,stroke-width:2px;
+    classDef db fill:#1e293b,stroke:#10b981,color:#fff,stroke-width:2px;
 
-    Person(usuario, "Encargado / Administrador", "Usuario que gestiona el inventario, registra stock y monitorea las alertas de reabastecimiento.")
+    subgraph UserSpace [" "]
+        U["👤 <b>Encargado / Administrador</b><br/><i>[Usuario]</i><br/>Gestiona inventario y monitorea alertas"]:::person
+    end
 
-    System_Boundary(pulpedistica, "Sistema Pulpedística") {
-        Container(frontend, "Aplicación Web / Frontend", "JavaScript / SPA", "Interfaz de usuario para visualizar productos, catálogo y el estado visual del semáforo de stock (Rojo, Amarillo, Verde).")
-        Container(api, "API Backend", "Node.js / Express", "Maneja la lógica de negocio, reglas del semáforo de inventario, cálculo de reabastecimiento y endpoints REST.")
-        ContainerDb(db, "Base de Datos", "PostgreSQL / MySQL", "Almacena información de productos, categorías, niveles mínimos de stock y registros de movimientos.")
-    }
+    subgraph SystemBoundary [" 🟢 <b>SISTEMA PULPEDÍSTICA</b> "]
+        direction TB
+        
+        FE["📱 <b>Aplicación Web (Frontend)</b><br/><i>[JavaScript / SPA]</i><br/>Interfaz gráfica y semáforo visual de stock<br/>🔴 Amarillo 🟢"]:::container
+        
+        BE["⚙️ <b>API Backend</b><br/><i>[Node.js / Express]</i><br/>Lógica de negocio, reglas del semáforo y endpoints REST"]:::container
+        
+        DB[("🗄️ <b>Base de Datos</b><br/><i>[PostgreSQL / MySQL]</i><br/>Stock, productos, umbrales y movimientos")]:::db
+    end
 
-    Rel(usuario, frontend, "Usa y monitorea inventario en", "HTTPS")
-    Rel(frontend, api, "Consume datos y envía acciones mediante", "JSON / HTTPS")
-    Rel(api, db, "Lee y escribe datos de productos y stock en", "SQL / TCP")
+    U -->|"HTTPS<br/>[Monitorea stock y registra productos]"| FE
+    FE <-->|"JSON / HTTPS<br/>[Consulta estado y envía actualizaciones]"| BE
+    BE <-->|"SQL / TCP<br/>[Persistencia de datos y lecturas]"| DB
 ```
