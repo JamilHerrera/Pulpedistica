@@ -52,8 +52,8 @@ export function useDashboard() {
 
         supabase
           .from('detalle_ventas')
-          .select('producto_id, cantidad, productos(nombre)')
-          .gte('created_at' as never, inicioSemana.toISOString())
+          .select('producto_id, cantidad, productos(nombre), ventas!inner(fecha_hora)')
+          .gte('ventas.fecha_hora', inicioSemana.toISOString())
           .order('cantidad', { ascending: false })
           .limit(5),
       ])

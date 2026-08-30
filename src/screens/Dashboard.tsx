@@ -482,10 +482,15 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                   const esAnulada = v.anulada === true
                   const esMasReciente = i === 0 && !esAnulada
                   return (
-                    <button
+                    <div
                       key={v.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setVentaDetalle(v)}
-                      className={`w-full glass-card px-4 py-3 flex items-center gap-3 transition-all active:scale-[0.98] text-left ${
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') setVentaDetalle(v)
+                      }}
+                      className={`w-full glass-card px-4 py-3 flex items-center gap-3 transition-all active:scale-[0.98] text-left cursor-pointer ${
                         esAnulada ? 'opacity-50' : ''
                       }`}
                     >
@@ -518,7 +523,10 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                         </p>
                         {esMasReciente && (
                           <button
-                            onClick={() => setVentaParaAnular(v)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setVentaParaAnular(v)
+                            }}
                             className="w-7 h-7 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center active:scale-90 transition-all"
                             title="Anular esta venta"
                           >
@@ -526,7 +534,7 @@ export function Dashboard({ onNavigate, onToast }: Props) {
                           </button>
                         )}
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
