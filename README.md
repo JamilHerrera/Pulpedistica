@@ -1,6 +1,6 @@
-# PulpeMétricas 🛒📊
+# PulpeDisticas 🛒📊
 
-**PulpeMétricas** (desarrollado bajo el nombre inicial de PulpeAnálisis) es una Progressive Web App (PWA) de alta fidelidad diseñada específicamente para optimizar la gestión de inventario, el control de caja diaria y la rotación de productos en pulperías de barrio de Honduras.
+**PulpeDisticas** (desarrollado bajo el nombre inicial de PulpeAnálisis) es una Progressive Web App (PWA) de alta fidelidad diseñada específicamente para optimizar la gestión de inventario, el control de caja diaria y la rotación de productos en pulperías de barrio de Honduras.
 
 El sistema transforma el mostrador tradicional en un punto de venta express inteligente, reduciendo las mermas financieras por productos vencidos o estancados mediante una interfaz visual intuitiva y automatizada.
 
@@ -69,5 +69,7 @@ VITE_SUPABASE_ANON_KEY=tu_clave_anonima
 ```bash
 npm run dev
 ```
+
+LEARN-CAP-037676CD
 
 La aplicación estará disponible en `http://localhost:5173`.

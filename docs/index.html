@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PulpeDisticas — El semáforo inteligente de tu pulpería</title>
+<meta name="description" content="PulpeDisticas es la PWA que convierte el mostrador de tu pulpería en un punto de venta express, con semáforo de rotación, pedidos automáticos y caja diaria en tiempo real." />
+<style>
+  :root{
+    --bg:#070714;
+    --surface:#0e0e1f;
+    --card:#12122a;
+    --card-hover:#181830;
+    --line: rgba(244,243,251,.09);
+    --text:#f4f3fb;
+    --muted: rgba(244,243,251,.64);
+    --muted-2: rgba(244,243,251,.42);
+    --brand:#7c3aed;
+    --brand-light:#a78bfa;
+    --brand-glow: rgba(124,58,237,.35);
+    --accent:#06b6d4;
+    --accent-light:#67e8f9;
+    --success:#10b981;
+    --warning:#f59e0b;
+    --danger:#ef4444;
+    --radius:22px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(at 12% 8%, rgba(124,58,237,.16) 0px, transparent 45%),
+      radial-gradient(at 88% 0%, rgba(6,182,212,.12) 0px, transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  img,svg{max-width:100%;display:block;}
+  .container{max-width:1120px;margin:0 auto;padding:0 24px;}
+
+  /* señal lateral: el "poste" del semáforo recorriendo la página */
+  .rail{
+    position:fixed;top:0;left:0;bottom:0;width:5px;z-index:40;
+    background:linear-gradient(180deg,var(--success) 0%, var(--success) 30%, var(--warning) 30%, var(--warning) 62%, var(--danger) 62%, var(--danger) 100%);
+    opacity:.9;
+  }
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    background:rgba(7,7,20,.78);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar__inner{
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    padding:14px 24px 14px 34px;
+  }
+  .brand{font-weight:800;font-size:1.05rem;text-decoration:none;letter-spacing:-.01em;white-space:nowrap;}
+  .brand em{color:var(--accent-light);font-style:normal;}
+  .topnav{display:flex;gap:18px;overflow-x:auto;scrollbar-width:none;padding:2px 0;}
+  .topnav::-webkit-scrollbar{display:none;}
+  .topnav a{
+    font-size:.82rem;color:var(--muted);text-decoration:none;white-space:nowrap;font-weight:600;
+    padding:6px 2px;border-bottom:2px solid transparent;
+  }
+  .topnav a:hover{color:var(--text);border-color:var(--brand-light);}
+  .topbar__cta{display:flex;gap:10px;flex-shrink:0;}
+
+  /* ---------- botones ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:11px 20px;border-radius:999px;font-weight:700;font-size:.86rem;
+    text-decoration:none;border:1px solid transparent;transition:transform .15s ease, background .15s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn--primary{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;box-shadow:0 8px 24px var(--brand-glow);}
+  .btn--ghost{background:var(--card);border-color:var(--line);color:var(--text);}
+  .btn--ghost:hover{background:var(--card-hover);}
+  a:focus-visible, button:focus-visible{outline:2px solid var(--accent-light);outline-offset:3px;border-radius:8px;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:76px 24px 60px 34px;
+    display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;
+  }
+  .eyebrow{
+    display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent-light);margin-bottom:18px;
+  }
+  h1{font-size:clamp(2.1rem,4.4vw,3.4rem);line-height:1.08;letter-spacing:-.02em;margin:0 0 20px;font-weight:800;}
+  h1 span{background:linear-gradient(135deg,var(--brand-light),var(--accent-light));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .lead{color:var(--muted);font-size:1.08rem;max-width:56ch;margin:0 0 30px;}
+  .hero__ctas{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .hero__note{font-size:.78rem;color:var(--muted-2);}
+  .hero__visual{position:relative;}
+  .glow{
+    position:absolute;inset:-40px;background:radial-gradient(circle at 40% 30%, var(--brand-glow), transparent 60%);
+    filter:blur(10px);z-index:-1;animation:pulse 5s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+
+  /* ---------- secciones ---------- */
+  .section{padding:78px 0;border-top:1px solid var(--line);}
+  .section--tight{padding-top:60px;}
+  .section__head{max-width:70ch;margin-bottom:38px;}
+  .kicker{
+    font-family:var(--mono);font-size:.74rem;color:var(--muted-2);letter-spacing:.06em;
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .kicker .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  h2{font-size:clamp(1.6rem,2.6vw,2.15rem);margin:0 0 14px;letter-spacing:-.01em;}
+  .section__head p{color:var(--muted);font-size:1.02rem;margin:0;}
+  .section p{color:var(--muted);}
+  .two-col{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:start;}
+
+  /* ---------- tarjetas de funcionalidades ---------- */
+  .grid-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:8px;}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;transition:background .2s ease, border-color .2s ease;
+  }
+  .card:hover{background:var(--card-hover);border-color:rgba(167,139,250,.35);}
+  .card__icon{
+    width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    font-size:1.2rem;margin-bottom:14px;background:rgba(124,58,237,.16);
+  }
+  .card h3{font-size:1rem;margin:0 0 8px;}
+  .card p{font-size:.9rem;color:var(--muted);margin:0;}
+
+  /* ---------- badges de stack ---------- */
+  .stack{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px;}
+  .chip{
+    display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    padding:9px 16px;border-radius:12px;font-size:.85rem;font-weight:600;
+  }
+  .chip small{font-family:var(--mono);color:var(--muted-2);font-weight:400;font-size:.72rem;}
+
+  /* ---------- pasos del manual ---------- */
+  .steps{display:flex;flex-direction:column;gap:0;margin-top:8px;}
+  .step{display:grid;grid-template-columns:44px 1fr;gap:18px;padding:20px 0;border-bottom:1px dashed var(--line);}
+  .step:last-child{border-bottom:none;}
+  .step__n{
+    width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;color:var(--accent-light);
+  }
+  .step h3{margin:2px 0 6px;font-size:1.02rem;}
+  .step p{margin:0;font-size:.94rem;color:var(--muted);}
+
+  /* ---------- semáforo legend ---------- */
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin:22px 0 4px;}
+  .legend__item{display:flex;align-items:center;gap:9px;font-size:.85rem;color:var(--muted);}
+  .legend__dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+
+  /* ---------- cliente persona ---------- */
+  .persona{
+    display:flex;gap:20px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:28px;margin-top:24px;
+  }
+  .persona__avatar{
+    width:56px;height:56px;border-radius:16px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+  }
+
+  /* ---------- autor ---------- */
+  .autor-card{
+    display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:30px;margin-top:10px;
+  }
+  .autor-avatar{
+    width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--brand-light),var(--accent));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.6rem;color:#0b0b1a;
+  }
+  .autor-links{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+
+  /* ---------- footer ---------- */
+  footer.site-footer{border-top:1px solid var(--line);padding:44px 0 60px;}
+  .verify{
+    display:inline-flex;flex-direction:column;gap:4px;background:var(--surface);border:1px dashed rgba(167,139,250,.4);
+    border-radius:14px;padding:14px 18px;margin-bottom:28px;
+  }
+  .verify span:first-child{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted-2);}
+  .verify code{font-family:var(--mono);font-size:.95rem;color:var(--accent-light);}
+  .footer__row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;color:var(--muted-2);font-size:.85rem;}
+  .footer__links{display:flex;gap:18px;}
+  .footer__links a{text-decoration:none;color:var(--muted);font-weight:600;}
+  .footer__links a:hover{color:var(--accent-light);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+    html{scroll-behavior:auto;}
+  }
+
+  @media (max-width: 860px){
+    .hero,.two-col{grid-template-columns:1fr;}
+    .hero{padding-top:34px;}
+    .topbar__inner{padding-left:20px;}
+  }
+  @media (max-width: 640px){
+    .rail{display:none;}
+    .topbar__cta .btn--ghost{display:none;}
+    .container{padding:0 18px;}
+    .section{padding:52px 0;}
+    .autor-card{grid-template-columns:1fr;text-align:center;}
+    .autor-avatar{margin:0 auto;}
+    .persona{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="rail" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar__inner container">
+    <a class="brand" href="#top">🛒 Pulpe<em>Disticas</em></a>
+    <nav class="topnav" aria-label="Secciones de la página">
+      <a href="#problema">Problema</a>
+      <a href="#solucion">Solución</a>
+      <a href="#funcionalidades">Funciones</a>
+      <a href="#arquitectura">Arquitectura</a>
+      <a href="#tecnologias">Stack</a>
+      <a href="#manual">Manual</a>
+      <a href="#cliente">Cliente</a>
+      <a href="#autor">Autor</a>
+    </nav>
+    <div class="topbar__cta">
+      <a class="btn btn--ghost" href="https://github.com/JamilHerrera/Pulpedistica" target="_blank" rel="noopener">Código</a>
+      <!-- TODO(autor): reemplazá el href de abajo por tu URL real de despliegue (Vercel/Netlify/GitHub Pages) -->
+      <a class="btn btn--primary" href="#demo-pendiente" id="live-link" target="_blank" rel="noopener">Ver demo ↗</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero container">
+    <div>
+      <span class="eyebrow">PWA para pulperías de barrio · Honduras</span>
+      <h1>El mostrador de tu pulpería, con <span>semáforo propio</span></h1>
+      <p class="lead">PulpeDisticas cobra ventas en segundos, te avisa con colores qué producto se está por estancar antes de que venza en bodega, y arma el pedido para cada proveedor listo para pegar en WhatsApp. Todo desde el celular, sin cuadernos ni memoria.</p>
+      <div class="hero__ctas">
+        <a class="btn btn--primary" href="#demo-pendiente" target="_blank" rel="noopener">▶ Ver demo en vivo</a>
+        <a class="btn btn--ghost" href="https://github.com/JamilHerrera/Pulpedistica" target="_blank" rel="noopener">&lt;/&gt; Ver repositorio</a>
+      </div>
+      <p class="hero__note">Gratis para operar · Funciona en celulares de gama baja · Datos en la nube con Supabase</p>
+    </div>
+
+    <div class="hero__visual">
+      <div class="glow" aria-hidden="true"></div>
+      <!-- VISUAL 1: mockup del Semáforo de Rotación -->
+      <svg viewBox="0 0 380 430" role="img" aria-label="Mockup de la pantalla Semáforo mostrando tres productos clasificados por color según su rotación">
+        <rect x="4" y="4" width="372" height="422" rx="34" style="fill:var(--surface);stroke:var(--line);stroke-width:1.5" />
+        <rect x="20" y="26" width="340" height="1" style="fill:var(--line)" />
+        <text x="34" y="52" style="fill:var(--text);font:800 16px var(--font)">🚦 Semáforo</text>
+        <rect x="286" y="34" width="60" height="26" rx="13" style="fill:rgba(6,182,212,.15);stroke:var(--accent);stroke-opacity:.4" />
+        <text x="316" y="51" text-anchor="middle" style="fill:var(--accent-light);font:700 11px var(--mono)">15D</text>
+
+        <!-- fila roja: baja rotación / riesgo -->
+        <rect x="26" y="78" width="328" height="80" rx="18" style="fill:rgba(239,68,68,.10);stroke:rgba(239,68,68,.4)" />
+        <rect x="26" y="78" width="6" height="80" rx="3" style="fill:var(--danger)" />
+        <text x="46" y="105" style="fill:var(--text);font:700 14px var(--font)">Yogurt Fresa 1L</text>
+        <text x="46" y="126" style="fill:var(--danger);font:600 11.5px var(--font)">0 unidades en 15 días · riesgo de vencer</text>
+        <text x="46" y="145" style="fill:var(--muted-2);font:400 10.5px var(--mono)">stock actual: 6</text>
+
+        <!-- fila amarilla: media rotación -->
+        <rect x="26" y="170" width="328" height="80" rx="18" style="fill:rgba(245,158,11,.10);stroke:rgba(245,158,11,.4)" />
+        <rect x="26" y="170" width="6" height="80" rx="3" style="fill:var(--warning)" />
+        <text x="46" y="197" style="fill:var(--text);font:700 14px var(--font)">Detergente en Polvo 1kg</text>
+        <text x="46" y="218" style="fill:var(--warning);font:600 11.5px var(--font)">5 unidades en 15 días · vigilar</text>
+        <text x="46" y="237" style="fill:var(--muted-2);font:400 10.5px var(--mono)">stock actual: 9</text>
+
+        <!-- fila verde: alta rotación -->
+        <rect x="26" y="262" width="328" height="80" rx="18" style="fill:rgba(16,185,129,.10);stroke:rgba(16,185,129,.4)" />
+        <rect x="26" y="262" width="6" height="80" rx="3" style="fill:var(--success)" />
+        <text x="46" y="289" style="fill:var(--text);font:700 14px var(--font)">Pan Blanco Grande</text>
+        <text x="46" y="310" style="fill:var(--success);font:600 11.5px var(--font)">22 unidades en 15 días · se vende solo</text>
+        <text x="46" y="329" style="fill:var(--muted-2);font:400 10.5px var(--mono)">stock actual: 4 · pedir pronto</text>
+
+        <rect x="26" y="364" width="328" height="46" rx="14" style="fill:var(--card);stroke:var(--line)" />
+        <text x="190" y="392" text-anchor="middle" style="fill:var(--muted);font:600 11.5px var(--font)">3 productos · actualizado en tiempo real</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ 1. PROBLEMA ============ -->
+  <section id="problema" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--danger)"></span>01 · El problema</span>
+        <h2>Vender bien no basta si no sabés qué se está muriendo en la bodega</h2>
+      </div>
+      <div class="two-col">
+        <div>
+          <p>En una pulpería de barrio el margen no se pierde en el mostrador, se pierde en silencio en la bodega: un yogurt que caducó sin que nadie lo notara, una caja de refrescos que se quedó atrás del anaquel, un producto que se pidió de más porque nadie recordaba cuánto se había vendido la semana pasada.</p>
+          <p>La mayoría de encargados llevan el control en un cuaderno, en la memoria o, en el mejor de los casos, en una hoja de Excel que nadie actualiza a diario. Eso genera tres problemas conectados entre sí: <strong>mermas por vencimiento</strong> que nadie ve venir, <strong>pedidos mal calculados</strong> a los proveedores (de más o de menos) y una <strong>caja diaria que no cuadra</strong> porque las ventas rápidas de mostrador — leche, pan, gaseosa — nunca se registran con el detalle suficiente.</p>
+          <p>A eso se suma la fricción del punto de venta: cobrar un producto común debería tomar segundos, no minutos, y sin embargo muchas pulperías siguen dependiendo de calculadoras físicas o de cálculo mental bajo presión, con clientes esperando en fila.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. SOLUCIÓN ============ -->
+  <section id="solucion" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--accent)"></span>02 · La solución</span>
+        <h2>Un mostrador digital que hace las cuentas por vos</h2>
+      </div>
+      <div class="two-col">
+        <div>
+          <p>PulpeDisticas es una Progressive Web App pensada de punta a punta para el mostrador de una pulpería hondureña: se abre desde el navegador del celular, no necesita instalarse desde ninguna tienda de apps, y funciona igual de bien en un teléfono de gama baja que en uno de gama alta.</p>
+          <p>El sistema centraliza toda la información en una única base de datos en la nube (Supabase), así que el encargado, el dueño o quien atienda ese turno siempre ven el mismo inventario y la misma caja, actualizados en tiempo real. Sobre esa base se construyen los cuatro pilares del producto: ventas exprés para cobrar en segundos, un semáforo que clasifica automáticamente la rotación de cada producto según sus ventas reales de los últimos 7, 15 o 30 días, un asistente que arma el pedido ideal por proveedor, y una caja diaria que se lleva sola conforme se registran las ventas.</p>
+          <p>Nada de esto depende de que alguien se acuerde de actualizar un cuaderno: el color del semáforo se recalcula solo cada vez que entra una venta nueva.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. FUNCIONALIDADES ============ -->
+  <section id="funcionalidades" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--brand-light)"></span>03 · Funcionalidades</span>
+        <h2>Cuatro herramientas, un solo mostrador</h2>
+        <p>Cada pantalla resuelve un momento distinto del día: antes de abrir, durante la venta, y al cerrar caja.</p>
+      </div>
+
+      <div class="grid-features">
+        <div class="card">
+          <div class="card__icon">⚡</div>
+          <h3>Ventas Express</h3>
+          <p>Botones de acceso rápido para los productos más vendidos (leche, pan, refrescos). Tocás, confirmás el precio si varía, y la venta queda registrada en menos de 5 segundos.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">🚦</div>
+          <h3>Semáforo de rotación</h3>
+          <p>Clasifica cada producto en tres niveles calculados sobre ventas reales: <strong style="color:var(--success)">verde</strong> (alta rotación, no debe faltar), <strong style="color:var(--warning)">amarillo</strong> (rotación media, vigilar) y <strong style="color:var(--danger)">rojo</strong> (baja o nula rotación, riesgo de estancarse o vencer).</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">📋</div>
+          <h3>Asistente de pedidos</h3>
+          <p>Filtra el catálogo por categoría o proveedor, calcula cuánto conviene pedir de cada producto y genera un resumen que se copia con un toque para pegarlo directo en el chat de WhatsApp del distribuidor.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">💰</div>
+          <h3>Caja diaria</h3>
+          <p>Cada venta suma automáticamente al total del día. El encargado ve en todo momento cuánto ha entrado, cuántas transacciones van y cuáles fueron las últimas ventas registradas.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">📈</div>
+          <h3>Panel de análisis</h3>
+          <p>Tendencia de ventas de la semana, productos más vendidos y comparativa entre periodos de 7, 15 y 30 días para decidir con datos y no por intuición.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">📦</div>
+          <h3>Inventario centralizado</h3>
+          <p>Catálogo único de productos con stock, precio y categoría, sincronizado en tiempo real entre todos los dispositivos que usen la pulpería.</p>
+        </div>
+      </div>
+
+      <!-- VISUAL 2: panel del día -->
+      <div style="margin-top:34px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;overflow-x:auto;">
+        <svg viewBox="0 0 700 190" role="img" aria-label="Mockup del panel de caja diaria con ventas de hoy, monto total, productos con stock bajo y un mini gráfico de la semana" style="min-width:560px">
+          <text x="18" y="28" style="fill:var(--text);font:800 14px var(--font)">📊 Hoy, jueves</text>
+
+          <rect x="18" y="42" width="200" height="70" rx="16" style="fill:var(--surface);stroke:var(--line)" />
+          <text x="34" y="68" style="fill:var(--muted);font:600 11px var(--font)">VENTAS DE HOY</text>
+          <text x="34" y="94" style="fill:var(--accent-light);font:800 22px var(--mono)">18</text>
+
+          <rect x="230" y="42" width="230" height="70" rx="16" style="fill:var(--surface);stroke:var(--line)" />
+          <text x="246" y="68" style="fill:var(--muted);font:600 11px var(--font)">MONTO EN CAJA</text>
+          <text x="246" y="94" style="fill:var(--success);font:800 22px var(--mono)">L 1,240.00</text>
+
+          <rect x="472" y="42" width="210" height="70" rx="16" style="fill:var(--surface);stroke:var(--line)" />
+          <text x="488" y="68" style="fill:var(--muted);font:600 11px var(--font)">STOCK BAJO</text>
+          <text x="488" y="94" style="fill:var(--danger);font:800 22px var(--mono)">4 prod.</text>
+
+          <text x="18" y="136" style="fill:var(--muted);font:600 11px var(--font)">VENTAS · ÚLTIMOS 7 DÍAS</text>
+          <g>
+            <rect x="18"  y="146" width="26" height="26" rx="5" style="fill:var(--brand)" />
+            <rect x="52"  y="130" width="26" height="42" rx="5" style="fill:var(--brand)" />
+            <rect x="86"  y="120" width="26" height="52" rx="5" style="fill:var(--brand-light)" />
+            <rect x="120" y="138" width="26" height="34" rx="5" style="fill:var(--brand)" />
+            <rect x="154" y="108" width="26" height="64" rx="5" style="fill:var(--accent)" />
+            <rect x="188" y="124" width="26" height="48" rx="5" style="fill:var(--brand)" />
+            <rect x="222" y="96"  width="26" height="76" rx="5" style="fill:var(--accent-light)" />
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. ARQUITECTURA ============ -->
+  <section id="arquitectura" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--accent)"></span>04 · Arquitectura</span>
+        <h2>Cómo está construido por dentro</h2>
+      </div>
+      <div class="two-col">
+        <div>
+          <p>PulpeDisticas usa una arquitectura de dos capas desacopladas, documentada desde el inicio mediante ADRs (Architecture Decision Records) para que cualquier cambio futuro quede justificado por escrito y no solo en la memoria de quien programó:</p>
+          <p><strong>1) Presentación —</strong> una SPA en React 18 + TypeScript que corre en el navegador del celular. No conoce reglas de negocio de bajo nivel: su trabajo es mostrar el inventario, la caja y el semáforo, y capturar las acciones del usuario (una venta, un producto nuevo, un pedido).</p>
+          <p><strong>2) Datos y reglas —</strong> Supabase como Backend-as-a-Service, que expone PostgreSQL más un canal de tiempo real (Realtime). Cuando se registra una venta, la app se suscribe a los cambios de las tablas <code style="font-family:var(--mono)">ventas</code> y <code style="font-family:var(--mono)">detalle_ventas</code>; en cuanto detecta un cambio, vuelve a calcular la clasificación del semáforo en el propio cliente, comparando las unidades vendidas contra umbrales fijos por periodo (7, 15 o 30 días).</p>
+          <p>Esta separación permite migrar la lógica del semáforo a un servicio independiente el día que el negocio lo requiera, sin tocar una sola pantalla — una decisión que quedó documentada explícitamente para evitar que las reglas de reabastecimiento terminen duplicadas entre el cliente y el servidor.</p>
+        </div>
+      </div>
+
+      <!-- VISUAL 3: diagrama de arquitectura -->
+      <div style="margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;overflow-x:auto;">
+        <svg viewBox="0 0 760 300" role="img" aria-label="Diagrama de arquitectura: el encargado usa la app PWA en React y TypeScript, que se comunica en tiempo real con Supabase (PostgreSQL y Realtime), y desde ahí se copia el resumen del pedido hacia WhatsApp" style="min-width:600px">
+          <!-- usuario -->
+          <rect x="10" y="110" width="150" height="80" rx="18" style="fill:var(--surface);stroke:var(--brand-light);stroke-opacity:.6" />
+          <text x="85" y="145" text-anchor="middle" style="fill:var(--text);font:700 13px var(--font)">🧑 Encargado</text>
+          <text x="85" y="165" text-anchor="middle" style="fill:var(--muted-2);font:400 10.5px var(--font)">usa su celular</text>
+
+          <path d="M160 150 H 250" style="stroke:var(--brand-light);stroke-width:2" marker-end="url(#arrow)" />
+          <text x="205" y="140" text-anchor="middle" style="fill:var(--muted-2);font:400 9.5px var(--mono)">toca / cobra</text>
+
+          <!-- app -->
+          <rect x="252" y="90" width="220" height="120" rx="18" style="fill:var(--surface);stroke:var(--accent);stroke-opacity:.7" />
+          <text x="362" y="130" text-anchor="middle" style="fill:var(--text);font:700 14px var(--font)">📱 App PWA</text>
+          <text x="362" y="150" text-anchor="middle" style="fill:var(--muted);font:400 11px var(--font)">React 18 + TypeScript</text>
+          <text x="362" y="168" text-anchor="middle" style="fill:var(--muted-2);font:400 10px var(--font)">calcula el semáforo en cliente</text>
+
+          <path d="M472 150 H 560" style="stroke:var(--accent);stroke-width:2" marker-end="url(#arrow)" />
+          <path d="M560 165 H 472" style="stroke:var(--accent);stroke-width:2;stroke-dasharray:4 4" marker-end="url(#arrow)" />
+          <text x="516" y="140" text-anchor="middle" style="fill:var(--muted-2);font:400 9.5px var(--mono)">Realtime</text>
+
+          <!-- supabase -->
+          <rect x="562" y="80" width="190" height="140" rx="18" style="fill:var(--surface);stroke:var(--success);stroke-opacity:.7" />
+          <text x="657" y="118" text-anchor="middle" style="fill:var(--text);font:700 13px var(--font)">🗄️ Supabase</text>
+          <text x="657" y="138" text-anchor="middle" style="fill:var(--muted);font:400 10.5px var(--font)">PostgreSQL</text>
+          <text x="657" y="156" text-anchor="middle" style="fill:var(--muted);font:400 10.5px var(--font)">Realtime</text>
+          <text x="657" y="174" text-anchor="middle" style="fill:var(--muted);font:400 10.5px var(--font)">Auth</text>
+
+          <!-- whatsapp -->
+          <path d="M340 210 V 250 H 362" style="stroke:var(--warning);stroke-width:2;stroke-dasharray:4 4" />
+          <rect x="252" y="250" width="220" height="42" rx="14" style="fill:var(--surface);stroke:var(--warning);stroke-opacity:.6" />
+          <text x="362" y="276" text-anchor="middle" style="fill:var(--text);font:600 12px var(--font)">💬 Pedido copiado → WhatsApp del proveedor</text>
+
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" style="fill:var(--accent)" />
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. TECNOLOGÍAS ============ -->
+  <section id="tecnologias" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--brand)"></span>05 · Tecnologías</span>
+        <h2>Stack elegido para celulares reales, no de laboratorio</h2>
+        <p>Cada pieza se escogió pensando en negocios pequeños: gratis de arrancar, liviano en la red, y suficientemente robusto para crecer sin reescribirse.</p>
+      </div>
+      <div class="stack">
+        <span class="chip">⚛️ React 18 <small>UI declarativa</small></span>
+        <span class="chip">🔷 TypeScript <small>tipado estricto</small></span>
+        <span class="chip">⚡ Vite <small>build y dev server</small></span>
+        <span class="chip">🎨 Tailwind CSS <small>diseño móvil</small></span>
+        <span class="chip">🗄️ Supabase <small>PostgreSQL + Realtime</small></span>
+        <span class="chip">📈 Recharts <small>gráficos</small></span>
+        <span class="chip">🎯 Lucide React <small>iconografía</small></span>
+        <span class="chip">📲 vite-plugin-pwa <small>instalable / offline</small></span>
+        <span class="chip">▲ Vercel <small>despliegue continuo</small></span>
+      </div>
+      <p style="margin-top:22px;max-width:70ch;">React y TypeScript dan velocidad de desarrollo sin sacrificar seguridad de tipos entre pantallas y hooks. Vite mantiene los tiempos de recarga casi instantáneos incluso en máquinas modestas. Tailwind permite construir una interfaz táctil de alta fidelidad sin escribir CSS a mano para cada pantalla. Y Supabase evita programar y mantener un backend propio: con su capa gratuita alcanza sobra para una o varias pulperías, y su canal Realtime es lo que le da vida al semáforo, que se actualiza solo apenas entra una venta nueva.</p>
+    </div>
+  </section>
+
+  <!-- ============ 6. MANUAL DE USO ============ -->
+  <section id="manual" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--success)"></span>06 · Manual de uso</span>
+        <h2>De abrir la tienda a mandar el pedido, en 6 pasos</h2>
+      </div>
+
+      <div class="two-col">
+        <div class="steps">
+          <div class="step">
+            <div class="step__n">1</div>
+            <div><h3>Cargá tu catálogo</h3><p>Entrá a <strong>Inventario</strong>, creá tus categorías (una por proveedor o tipo de producto) y agregá cada producto con su stock inicial y precio de referencia.</p></div>
+          </div>
+          <div class="step">
+            <div class="step__n">2</div>
+            <div><h3>Cobrá con Venta Express</h3><p>En <strong>Nueva Venta</strong> tocá el producto (o buscalo), ajustá el precio si cambia ese día, agregá al carrito y confirmá el cobro. Todo en menos de 5 segundos por producto.</p></div>
+          </div>
+          <div class="step">
+            <div class="step__n">3</div>
+            <div><h3>Revisá el Semáforo cada mañana</h3><p>Abrí <strong>Semáforo</strong> y mirá qué quedó en rojo (riesgo de estancarse), en amarillo (vigilar) o en verde (que no falte). Elegí el periodo de 7, 15 o 30 días según qué tan seguido revisás.</p></div>
+          </div>
+          <div class="step">
+            <div class="step__n">4</div>
+            <div><h3>Generá el pedido por proveedor</h3><p>En <strong>Análisis</strong>, filtrá por categoría/proveedor, revisá la cantidad sugerida por producto y tocá «Copiar Resumen». El texto queda listo para pegar directo en el chat de WhatsApp de tu distribuidor.</p></div>
+          </div>
+          <div class="step">
+            <div class="step__n">5</div>
+            <div><h3>Controlá la caja del día</h3><p>El <strong>Dashboard</strong> te muestra cuánto llevás vendido hoy, cuántas transacciones van y tus ventas más recientes, sin necesidad de sumar nada a mano.</p></div>
+          </div>
+          <div class="step">
+            <div class="step__n">6</div>
+            <div><h3>Mirá la tendencia semanal</h3><p>Cerrá el día repasando <strong>Análisis</strong>: qué productos lideraron la semana y cómo se compara contra periodos anteriores, para decidir con datos qué pedir más y qué dejar de traer.</p></div>
+          </div>
+        </div>
+
+        <!-- VISUAL 4: mockup nueva venta -->
+        <div>
+          <svg viewBox="0 0 340 400" role="img" aria-label="Mockup de la pantalla Nueva Venta con botones rápidos de productos y el total del carrito">
+            <rect x="4" y="4" width="332" height="392" rx="30" style="fill:var(--surface);stroke:var(--line);stroke-width:1.5" />
+            <text x="28" y="42" style="fill:var(--text);font:800 15px var(--font)">⚡ Venta Express</text>
+
+            <g style="font:700 11.5px var(--font)">
+              <rect x="26" y="60"  width="130" height="52" rx="14" style="fill:var(--card);stroke:var(--line)" />
+              <text x="40" y="82" style="fill:var(--text)">🥛 Leche</text>
+              <text x="40" y="100" style="fill:var(--accent-light);font-family:var(--mono)">L 28.00</text>
+
+              <rect x="168" y="60" width="130" height="52" rx="14" style="fill:var(--card);stroke:var(--line)" />
+              <text x="182" y="82" style="fill:var(--text)">🍞 Pan</text>
+              <text x="182" y="100" style="fill:var(--accent-light);font-family:var(--mono)">L 15.00</text>
+
+              <rect x="26" y="122" width="130" height="52" rx="14" style="fill:var(--card);stroke:var(--line)" />
+              <text x="40" y="144" style="fill:var(--text)">🥤 Refresco</text>
+              <text x="40" y="162" style="fill:var(--accent-light);font-family:var(--mono)">L 20.00</text>
+
+              <rect x="168" y="122" width="130" height="52" rx="14" style="fill:var(--card);stroke:var(--line)" />
+              <text x="182" y="144" style="fill:var(--text)">🥚 Huevos</text>
+              <text x="182" y="162" style="fill:var(--accent-light);font-family:var(--mono)">L 65.00</text>
+
+              <rect x="26" y="184" width="130" height="52" rx="14" style="fill:var(--card);stroke:var(--line)" />
+              <text x="40" y="206" style="fill:var(--text)">🍚 Arroz</text>
+              <text x="40" y="224" style="fill:var(--accent-light);font-family:var(--mono)">L 45.00</text>
+
+              <rect x="168" y="184" width="130" height="52" rx="14" style="fill:var(--card);stroke:var(--line)" />
+              <text x="182" y="206" style="fill:var(--text)">🫘 Frijoles</text>
+              <text x="182" y="224" style="fill:var(--accent-light);font-family:var(--mono)">L 38.00</text>
+            </g>
+
+            <rect x="26" y="260" width="272" height="66" rx="16" style="fill:rgba(124,58,237,.14);stroke:var(--brand-light);stroke-opacity:.5" />
+            <text x="40" y="286" style="fill:var(--muted);font:600 11px var(--font)">CARRITO · 2 PRODUCTOS</text>
+            <text x="40" y="310" style="fill:var(--text);font:800 18px var(--mono)">Total L 63.00</text>
+
+            <rect x="26" y="340" width="272" height="44" rx="16" style="fill:var(--success)" />
+            <text x="162" y="367" text-anchor="middle" style="fill:#04241a;font:800 13px var(--font)">✓ Cobrar</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. CLIENTE ============ -->
+  <section id="cliente" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--warning)"></span>07 · Cliente</span>
+        <h2>¿Para quién es PulpeDisticas?</h2>
+      </div>
+      <div class="two-col">
+        <div>
+          <p>El cliente ideal es el dueño o encargado de una <strong>pulpería, minimarket o tienda de conveniencia de barrio</strong> en Honduras (y en general en Centroamérica), típicamente con uno a tres empleados, que atiende directamente en el mostrador y también hace las compras a los proveedores.</p>
+          <p>Maneja entre 50 y varios cientos de productos distintos, mezclando artículos de altísima rotación diaria — leche, pan, huevos, gaseosas — con productos de rotación lenta que se quedan olvidados en un estante hasta que un día se descubren vencidos. No tiene tiempo, presupuesto ni necesidad de un sistema ERP corporativo: necesita algo simple, en español, que funcione en el celular que ya tiene, con o sin buena señal, y que no le exija capacitación de varios días.</p>
+          <p>En resumen: negocios pequeños con inventario real y márgenes ajustados, donde detectar a tiempo un producto estancado puede significar la diferencia entre ganancia y pérdida ese mes.</p>
+          <div class="persona">
+            <div class="persona__avatar">🏪</div>
+            <div>
+              <strong>Doña / Don encargado de mostrador</strong>
+              <p style="margin:6px 0 0;">Atiende en persona, conoce a sus clientes por nombre, y necesita que la tecnología le ahorre tiempo — no que se lo quite aprendiendo a usarla.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 8. AUTOR ============ -->
+  <section id="autor" class="section">
+    <div class="container">
+      <div class="section__head">
+        <span class="kicker"><span class="dot" style="background:var(--accent-light)"></span>08 · Autor</span>
+        <h2>Quién construyó esto</h2>
+      </div>
+      <!-- TODO(autor): esta sección quedó como plantilla a propósito — reemplazá nombre, bio, foto/iniciales y enlaces por los tuyos. -->
+      <div class="autor-card">
+        <div class="autor-avatar">JH</div>
+        <div>
+          <h3 style="margin:0 0 6px;font-size:1.1rem;">Autor del proyecto</h3>
+          <p style="margin:0;max-width:60ch;">Desarrollador del repositorio <strong>Osman Herrera/Pulpedistica</strong>. PulpeDisticas nació como una forma de acercar herramientas de gestión modernas a los negocios de barrio, con foco en simplicidad de uso, buen rendimiento en celulares de gama baja y datos reales sobre rotación de inventario — no supuestos.</p>
+          <div class="autor-links">
+            <a class="btn btn--ghost" href="https://github.com/JamilHerrera" target="_blank" rel="noopener">GitHub: @JamilHerrera</a>
+            <a class="btn btn--ghost" href="https://github.com/JamilHerrera/Pulpedistica" target="_blank" rel="noopener">Ver este repositorio</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="verify">
+      <span>Código de verificación de autoría</span>
+      <code>LEARN-CAP-037676CD</code>
+    </div>
+    <div class="footer__row">
+      <span>© 2026 PulpeDisticas. Construido para las pulperías de barrio de Honduras.</span>
+      <div class="footer__links">
+        <a href="https://github.com/JamilHerrera/Pulpedistica" target="_blank" rel="noopener">Repositorio</a>
+        <a href="#demo-pendiente" id="live-link-footer" target="_blank" rel="noopener">Demo en vivo</a>
+        <a href="#top">Volver arriba ↑</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
