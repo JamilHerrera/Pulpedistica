@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { TrendingUp, ShoppingCart, Package, BarChart2, LogIn } from 'lucide-react'
 
 const features = [
@@ -13,9 +12,9 @@ export function Landing() {
     <div className="min-h-screen bg-app font-sans text-white flex flex-col">
       <header className="max-w-5xl mx-auto w-full px-6 py-6 flex items-center justify-between">
         <span className="font-black text-lg tracking-tight">PulpeAnálisis ✦</span>
-        <Link to="/login" className="btn-ghost flex items-center gap-2 text-sm">
+        <a href="/login" className="btn-ghost flex items-center gap-2 text-sm">
           <LogIn size={15} /> Iniciar sesión
-        </Link>
+        </a>
       </header>
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12 space-y-16">
@@ -27,9 +26,9 @@ export function Landing() {
             PulpeAnálisis es el panel para pulperías y tiendas pequeñas: sabé qué vender,
             qué reponer y cuánto facturaste, sin planillas.
           </p>
-          <Link to="/login" className="btn-primary inline-flex items-center gap-2">
+          <a href="/login" className="btn-primary inline-flex items-center gap-2">
             <LogIn size={16} /> Acceder al panel
-          </Link>
+          </a>
         </section>
 
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">

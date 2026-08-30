@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#070714" />
+    <meta name="description" content="Iniciá sesión en PulpeAnálisis para acceder al panel de inventario y ventas." />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://www.jamilherreravargas.lat/login" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <title>Iniciar sesión — PulpeAnálisis</title>
+  </head>
+  <body>
+    <main class="min-h-screen flex items-center justify-center bg-app px-4 font-sans">
+      <div class="w-full max-w-sm glass-card p-6 space-y-6">
+        <div class="text-center space-y-1">
+          <h1 class="text-white font-bold text-xl">Iniciar sesión</h1>
+          <p class="text-white/40 text-sm">Accedé al panel de PulpeAnálisis</p>
+        </div>
+
+        <form id="login-form" method="post" action="/login" class="space-y-4">
+          <div class="space-y-1.5">
+            <label for="email" class="stat-label">Correo</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autocomplete="email"
+              class="input-field"
+              placeholder="tucorreo@ejemplo.com"
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <label for="password" class="stat-label">Contraseña</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autocomplete="current-password"
+              class="input-field"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <p id="login-error" hidden class="text-danger-light text-sm bg-danger/10 border border-danger/20 rounded-xl px-3 py-2"></p>
+
+          <button id="login-submit" type="submit" class="btn-primary w-full disabled:opacity-50">
+            Entrar
+          </button>
+        </form>
+
+        <p class="text-center text-white/25 text-xs">
+          <a href="/" class="hover:text-white/50 transition-colors">← Volver al inicio</a>
+        </p>
+      </div>
+    </main>
+
+    <script type="module" src="/src/login.ts"></script>
+  </body>
+</html>

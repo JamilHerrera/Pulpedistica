@@ -24,16 +24,14 @@ if (missingEnv) {
   Promise.all([
     import('./AdminApp.tsx'),
     import('./screens/Landing.tsx'),
-    import('./screens/Login.tsx'),
     import('./screens/NotFound.tsx'),
     import('./components/routing/ProtectedRoute.tsx'),
-  ]).then(([{ default: AdminApp }, { Landing }, { Login }, { NotFound }, { ProtectedRoute }]) => {
+  ]).then(([{ default: AdminApp }, { Landing }, { NotFound }, { ProtectedRoute }]) => {
     root.render(
       <StrictMode>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
             <Route
               path="/admin"
               element={
