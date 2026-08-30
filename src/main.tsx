@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 
 const root = createRoot(document.getElementById('root')!)
@@ -20,10 +21,30 @@ if (missingEnv) {
     </StrictMode>,
   )
 } else {
-  import('./App.tsx').then(({ default: App }) => {
+  Promise.all([
+    import('./AdminApp.tsx'),
+    import('./screens/Landing.tsx'),
+    import('./screens/Login.tsx'),
+    import('./screens/NotFound.tsx'),
+    import('./components/routing/ProtectedRoute.tsx'),
+  ]).then(([{ default: AdminApp }, { Landing }, { Login }, { NotFound }, { ProtectedRoute }]) => {
     root.render(
       <StrictMode>
-        <App />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </StrictMode>,
     )
   })

@@ -12,6 +12,8 @@ export default defineConfig({
         name: 'PulpeAnálisis',
         short_name: 'PulpeAnálisis',
         description: 'Sistema inteligente de rotación de inventarios y ventas express',
+        lang: 'es',
+        dir: 'ltr',
         theme_color: '#070714',
         background_color: '#070714',
         display: 'standalone',
