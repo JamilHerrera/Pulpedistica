@@ -9,6 +9,8 @@ export interface Producto {
   nombre: string
   stock_actual: number
   categoria_id: string
+  /** Precio de catálogo. NULL mientras no se le haya fijado uno. */
+  precio?: number | null
   categorias?: Categoria
 }
 
@@ -35,7 +37,26 @@ export interface CartItem {
   precio_unitario: number
 }
 
-export type Screen = 'dashboard' | 'semaforo' | 'venta' | 'inventario' | 'analisis'
+export interface Cliente {
+  id: string
+  nombre: string
+  telefono?: string | null
+  notas?: string | null
+  created_at: string
+}
+
+export interface Fiado {
+  id: string
+  cliente_id: string
+  venta_id?: string | null
+  monto: number
+  pagado: boolean
+  fecha_registro: string
+  fecha_pago?: string | null
+  clientes?: Cliente
+}
+
+export type Screen = 'dashboard' | 'semaforo' | 'venta' | 'fiados' | 'inventario' | 'analisis'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 

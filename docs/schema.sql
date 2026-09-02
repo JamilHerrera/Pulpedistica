@@ -34,6 +34,19 @@ create table if not exists public.fiados (
 );
 
 
+-- ─── 1b. Precio de catálogo ─────────────────────────────────────────────────
+--
+--  Antes el precio de cada producto vivía solo en el localStorage del
+--  navegador (clave `pulpe_precios`): se perdía al limpiar los datos del sitio
+--  y no existía en otro dispositivo. Ahora es parte del catálogo.
+--
+--  Queda NULL para los productos a los que todavía no se les puso precio; la
+--  app los muestra como "Toca para precio", igual que antes.
+
+alter table public.productos
+  add column if not exists precio numeric(10,2) check (precio is null or precio >= 0);
+
+
 -- ─── 2. Índices ─────────────────────────────────────────────────────────────
 -- Acompañan a las consultas que ya hace la app (y a las de fiados).
 

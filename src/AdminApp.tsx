@@ -1,18 +1,23 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { Toast } from './components/ui/Toast'
 import { Dashboard } from './screens/Dashboard'
 import { Semaforo } from './screens/Semaforo'
 import { NuevaVenta } from './screens/NuevaVenta'
+import { Fiados } from './screens/Fiados'
 import { Inventario } from './screens/Inventario'
 import { Analisis } from './screens/Analisis'
 import { supabase } from './lib/supabase'
+import { migrarPreciosLocales } from './lib/migrarPrecios'
 import type { Screen, ToastMessage, ToastType } from './types'
 
 let toastCounter = 0
 
 export default function AdminApp() {
   const [screen, setScreen] = useState<Screen>('dashboard')
+
+  // Sube por única vez los precios que hayan quedado en este navegador.
+  useEffect(() => { migrarPreciosLocales() }, [])
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
   const addToast = useCallback(
@@ -33,6 +38,7 @@ export default function AdminApp() {
     dashboard: <Dashboard onNavigate={handleNavigate} onToast={addToast} />,
     semaforo:  <Semaforo />,
     venta:     <NuevaVenta onToast={addToast} />,
+    fiados:    <Fiados onToast={addToast} />,
     inventario:<Inventario onToast={addToast} />,
     analisis:  <Analisis />,
   }

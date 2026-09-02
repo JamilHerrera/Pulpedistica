@@ -305,7 +305,7 @@ export function NuevaVenta({ onToast }: Props) {
   const {
     cart, total, saving,
     addToCart, updateCantidad, updatePrecio, removeFromCart, clearCart,
-    confirmarVenta, searchProductos, getCachedPrice,
+    confirmarVenta, searchProductos, getPrecio,
     getProductosFrecuentes, registrarMontoLibre,
   } = useVenta()
 
@@ -439,7 +439,7 @@ export function NuevaVenta({ onToast }: Props) {
                 <ProductoRapidoBtn
                   key={p.id}
                   producto={p}
-                  cachedPrice={getCachedPrice(p.id)}
+                  cachedPrice={getPrecio(p)}
                   onAdd={(prod, price) => {
                     addToCart(prod, price)
                     onToast(`${prod.nombre} agregado`, undefined, 'success')
@@ -466,7 +466,7 @@ export function NuevaVenta({ onToast }: Props) {
                   <ProductSearchResult
                     key={p.id}
                     producto={p}
-                    cachedPrice={getCachedPrice(p.id)}
+                    cachedPrice={getPrecio(p)}
                     onAdd={(prod, price) => {
                       addToCart(prod, price)
                       setQuery('')

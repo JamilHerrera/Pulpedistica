@@ -2,24 +2,12 @@ import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Producto, CartItem } from '../types'
 
-const PRECIO_CACHE_KEY = 'pulpe_precios'
-
-function loadPriceCache(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(PRECIO_CACHE_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
-}
-
-function savePriceCache(cache: Record<string, number>) {
-  localStorage.setItem(PRECIO_CACHE_KEY, JSON.stringify(cache))
-}
-
 export function useVenta() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [saving, setSaving] = useState(false)
-  const [priceCache, setPriceCache] = useState<Record<string, number>>(loadPriceCache)
+  // Precios ya fijados en esta sesión, para que la UI los muestre al instante
+  // sin esperar a releer el catálogo. La fuente de verdad es productos.precio.
+  const [preciosLocales, setPreciosLocales] = useState<Record<string, number>>({})
 
   const searchProductos = useCallback(async (query: string): Promise<Producto[]> => {
     if (!query.trim()) return []
@@ -34,9 +22,18 @@ export function useVenta() {
   }, [])
 
   const addToCart = useCallback((producto: Producto, precio_unitario: number) => {
-    const newCache = { ...priceCache, [producto.id]: precio_unitario }
-    setPriceCache(newCache)
-    savePriceCache(newCache)
+    setPreciosLocales((prev) => ({ ...prev, [producto.id]: precio_unitario }))
+
+    // El precio pasa a ser parte del catálogo, no solo de esta venta.
+    if (producto.precio !== precio_unitario) {
+      supabase
+        .from('productos')
+        .update({ precio: precio_unitario })
+        .eq('id', producto.id)
+        .then(({ error }) => {
+          if (error) console.error('No se pudo guardar el precio del producto:', error)
+        })
+    }
 
     setCart((prev) => {
       const existing = prev.find((i) => i.producto.id === producto.id)
@@ -49,7 +46,7 @@ export function useVenta() {
       }
       return [...prev, { producto, cantidad: 1, precio_unitario }]
     })
-  }, [priceCache])
+  }, [])
 
   const updateCantidad = useCallback((productoId: string, cantidad: number) => {
     if (cantidad <= 0) {
@@ -118,9 +115,10 @@ export function useVenta() {
     }
   }, [cart, total])
 
-  const getCachedPrice = useCallback(
-    (productoId: string) => priceCache[productoId] ?? 0,
-    [priceCache],
+  /** Precio de catálogo del producto, o el fijado recién en esta sesión. */
+  const getPrecio = useCallback(
+    (producto: Producto) => preciosLocales[producto.id] ?? Number(producto.precio ?? 0),
+    [preciosLocales],
   )
 
   // Top products by frequency in detalle_ventas (client-side aggregation)
@@ -182,7 +180,7 @@ export function useVenta() {
     clearCart,
     confirmarVenta,
     searchProductos,
-    getCachedPrice,
+    getPrecio,
     getProductosFrecuentes,
     registrarMontoLibre,
   }
