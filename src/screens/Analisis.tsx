@@ -41,7 +41,7 @@ function TabEstadisticas() {
   return (
     <div className="space-y-4">
       {/* Selector período */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 max-w-lg">
         {PERIODS.map((p) => (
           <button
             key={p.value}
@@ -356,15 +356,15 @@ export function Analisis() {
   const [tab, setTab] = useState<'estadisticas' | 'pedidos'>('estadisticas')
 
   return (
-    <div className="px-4 pb-36 pt-16 space-y-4 animate-fade-in">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="pt-2">
-        <h1 className="text-2xl font-bold text-white">Análisis</h1>
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Análisis</h2>
         <p className="text-white/40 text-sm mt-0.5">Estadísticas y sugerencias de pedido</p>
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/8">
+      <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/8 max-w-md">
         <button
           onClick={() => setTab('estadisticas')}
           className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 ${

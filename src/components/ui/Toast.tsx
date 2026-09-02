@@ -48,7 +48,7 @@ function ToastItem({ toast, onRemove }: { toast: ToastMessage; onRemove: () => v
 export function Toast({ toasts, onRemove }: Props) {
   if (toasts.length === 0) return null
   return (
-    <div className="fixed top-16 right-0 left-0 z-50 px-4 flex flex-col gap-2 pointer-events-none md:absolute">
+    <div className="fixed top-20 right-0 left-0 sm:left-auto sm:right-6 z-50 px-4 sm:px-0 sm:w-80 flex flex-col gap-2 pointer-events-none">
       <div className="pointer-events-auto flex flex-col gap-2">
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onRemove={() => onRemove(t.id)} />

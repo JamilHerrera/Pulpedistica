@@ -140,10 +140,10 @@ function AddProductModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[390px] glass-card rounded-t-3xl p-5 pb-8 space-y-4 animate-slide-up"
+        className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -291,11 +291,11 @@ export function Inventario({ onToast }: Props) {
   const criticalCount = productos.filter((p) => p.stock_actual <= STOCK_MIN).length
 
   return (
-    <div className="px-4 pb-36 pt-16 space-y-4 animate-fade-in">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="pt-2 flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Inventario</h1>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Inventario</h2>
           <p className="text-white/40 text-sm mt-0.5">{productos.length} productos totales</p>
         </div>
         <button
@@ -307,7 +307,7 @@ export function Inventario({ onToast }: Props) {
       </div>
 
       {/* Buscador */}
-      <div className="relative">
+      <div className="relative max-w-xl">
         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
         <input
           value={query} onChange={(e) => setQuery(e.target.value)}
@@ -360,7 +360,7 @@ export function Inventario({ onToast }: Props) {
           <p className="text-white/40 text-sm">No se encontraron productos</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((p) => (
             <ProductoCard
               key={p.id}

@@ -189,12 +189,12 @@ export function Semaforo() {
   )
 
   return (
-    <div className="px-4 pb-36 pt-16 space-y-4 animate-fade-in">
+    <div className="space-y-5 max-w-5xl">
 
       {/* Header */}
-      <div className="pt-2 flex items-start justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Semáforo</h1>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Semáforo</h2>
           <div className="flex items-center gap-1.5 mt-1">
             <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
             <p className="text-white/40 text-xs">
@@ -211,7 +211,7 @@ export function Semaforo() {
       </div>
 
       {/* Toggle 7d / 15d / 30d */}
-      <div className="flex gap-1 p-1 bg-white/5 rounded-2xl border border-white/8">
+      <div className="flex gap-1 p-1 bg-white/5 rounded-2xl border border-white/8 max-w-md">
         {([7, 15, 30] as const).map((d) => (
           <button
             key={d}
@@ -227,6 +227,7 @@ export function Semaforo() {
         ))}
       </div>
 
+      <div className="grid gap-3 md:grid-cols-2">
       {/* Resumen rápido */}
       {!loading && !error && (
         <div className="glass-card p-3 grid grid-cols-4 gap-2">
@@ -267,6 +268,7 @@ export function Semaforo() {
           </div>
         </div>
       )}
+      </div>
 
       {/* Leyenda de umbrales */}
       <div className="flex gap-2 flex-wrap">

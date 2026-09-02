@@ -25,10 +25,10 @@ function EstancadosModal({
     d >= 999 ? 'Nunca vendido' : `${d} día${d !== 1 ? 's' : ''} sin venta`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[390px] glass-card rounded-t-3xl pb-8 animate-slide-up border-t-2 border-orange-500/40 max-h-[80vh] flex flex-col"
+        className="relative w-full sm:max-w-2xl glass-card rounded-t-3xl sm:rounded-3xl pb-8 sm:pb-6 animate-slide-up border-t-2 sm:border-t border-orange-500/40 max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera */}
@@ -113,10 +113,10 @@ function EstancadosModal({
 function VentaDetalleModal({ venta, onClose }: { venta: Venta; onClose: () => void }) {
   const detalles = venta.detalle_ventas ?? []
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[390px] glass-card rounded-t-3xl pb-8 animate-slide-up border-t-2 border-accent/40 max-h-[75vh] flex flex-col"
+        className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl pb-8 sm:pb-6 animate-slide-up border-t-2 sm:border-t border-accent/40 max-h-[75vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera */}
@@ -202,10 +202,10 @@ function AnularModal({
   venta, onConfirm, onClose, loading,
 }: { venta: Venta; onConfirm: () => void; onClose: () => void; loading: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[390px] glass-card rounded-t-3xl p-5 pb-8 space-y-4 animate-slide-up border-t-2 border-danger/40"
+        className="relative w-full sm:max-w-md glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up border-t-2 sm:border-t border-danger/40"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -269,20 +269,19 @@ function MiniBarChart({ values }: { values: number[] }) {
   const max = Math.max(...values, 1)
   const today = new Date().getDay()
   return (
-    <div className="flex items-end gap-1 h-12">
+    <div className="flex items-end gap-1.5 h-12 lg:h-36">
       {values.map((v, i) => {
         const dayIdx = (today - (6 - i) + 7) % 7
         const isToday = i === 6
-        const height = Math.max(4, (v / max) * 48)
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+          <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
             <div
               className={`w-full rounded-sm transition-all duration-500 ${
                 isToday ? 'bg-brand-light' : 'bg-white/15'
               }`}
-              style={{ height: `${height}px` }}
+              style={{ height: `${Math.max(3, (v / max) * 100)}%` }}
             />
-            <span className={`text-[9px] ${isToday ? 'text-brand-light' : 'text-white/30'}`}>
+            <span className={`shrink-0 text-[9px] ${isToday ? 'text-brand-light' : 'text-white/30'}`}>
               {DAYS[dayIdx]}
             </span>
           </div>
@@ -317,10 +316,6 @@ export function Dashboard({ onNavigate, onToast }: Props) {
     return '¡Buenas noches!'
   }, [])
 
-  const today = useMemo(() =>
-    new Date().toLocaleDateString('es-HN', { weekday: 'long', day: 'numeric', month: 'long' }),
-  [])
-
   if (error) return (
     <div className="flex flex-col items-center justify-center h-96 gap-4 px-6">
       <AlertTriangle size={40} className="text-warning" />
@@ -332,17 +327,14 @@ export function Dashboard({ onNavigate, onToast }: Props) {
   )
 
   return (
-    <div className="px-4 pb-36 pt-16 space-y-5 animate-fade-in">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between pt-2">
-        <div>
-          <p className="text-white/40 text-sm font-medium capitalize">{today}</p>
-          <h1 className="text-2xl font-bold text-white mt-0.5">{greeting}</h1>
-          <p className="text-brand-light text-sm font-medium mt-0.5">PulpeAnálisis ✦</p>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{greeting}</h2>
         <button
           onClick={refetch}
-          className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center active:scale-90 transition-all"
+          title="Actualizar datos"
+          className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all"
         >
           <RefreshCw size={16} className="text-white/50" />
         </button>
@@ -356,48 +348,53 @@ export function Dashboard({ onNavigate, onToast }: Props) {
         </>
       ) : stats ? (
         <>
-          {/* Revenue hero card */}
-          <div
-            className="relative rounded-3xl overflow-hidden p-5"
-            style={{ background: 'linear-gradient(135deg, #4c1d95 0%, #1e1b4b 40%, #0c1445 100%)' }}
-          >
-            <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 80% 20%, rgba(124,58,237,0.4) 0%, transparent 60%)' }} />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-1">
-                <Zap size={14} className="text-yellow-400" />
-                <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Ventas hoy</p>
+          {/* Fila principal: ingresos + métricas */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            {/* Revenue hero card */}
+            <div
+              className="relative rounded-3xl overflow-hidden p-5 lg:col-span-2 lg:p-6"
+              style={{ background: 'linear-gradient(135deg, #4c1d95 0%, #1e1b4b 40%, #0c1445 100%)' }}
+            >
+              <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 80% 20%, rgba(124,58,237,0.4) 0%, transparent 60%)' }} />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap size={14} className="text-yellow-400" />
+                  <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Ventas hoy</p>
+                </div>
+                <p className="text-4xl lg:text-5xl font-black text-white tracking-tight">
+                  L {stats.montoHoy.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-white/50 text-sm mt-1">{stats.ventasHoy} transacciones</p>
+                <div className="mt-4">
+                  <p className="text-white/30 text-[10px] uppercase tracking-wider mb-2">Últimos 7 días</p>
+                  <MiniBarChart values={stats.ventasEsta_semana} />
+                </div>
               </div>
-              <p className="text-4xl font-black text-white tracking-tight">
-                L {stats.montoHoy.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-white/50 text-sm mt-1">{stats.ventasHoy} transacciones</p>
-              <div className="mt-4">
-                <p className="text-white/30 text-[10px] uppercase tracking-wider mb-2">Últimos 7 días</p>
-                <MiniBarChart values={stats.ventasEsta_semana} />
-              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-1">
+              <StatCard
+                label="Stock bajo"
+                value={stats.productosStockBajo}
+                icon={AlertTriangle}
+                color={stats.productosStockBajo > 0 ? 'danger' : 'success'}
+                suffix="productos"
+                onClick={() => onNavigate('inventario')}
+              />
+              <StatCard
+                label="Inventario"
+                value={stats.totalProductos}
+                icon={Package}
+                color="accent"
+                suffix="productos"
+                onClick={() => onNavigate('inventario')}
+              />
             </div>
           </div>
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              label="Stock bajo"
-              value={stats.productosStockBajo}
-              icon={AlertTriangle}
-              color={stats.productosStockBajo > 0 ? 'danger' : 'success'}
-              suffix="productos"
-              onClick={() => onNavigate('inventario')}
-            />
-            <StatCard
-              label="Inventario"
-              value={stats.totalProductos}
-              icon={Package}
-              color="accent"
-              suffix="productos"
-              onClick={() => onNavigate('inventario')}
-            />
-          </div>
-
+          {/* Alertas */}
+          <div className="grid gap-4 md:grid-cols-2">
           {/* Alertas de stock bajo */}
           {stats.productosStockBajo > 0 && (
             <div className="glass-card p-4 border-danger/20" style={{ borderColor: 'rgba(239,68,68,0.2)' }}>
@@ -440,7 +437,10 @@ export function Dashboard({ onNavigate, onToast }: Props) {
               <ChevronRight size={16} className="text-white/30 shrink-0" />
             </button>
           )}
+          </div>
 
+          {/* Listas */}
+          <div className="grid gap-5 lg:grid-cols-2 items-start">
           {/* Top productos */}
           {stats.topProductos.length > 0 && (
             <div>
@@ -540,6 +540,7 @@ export function Dashboard({ onNavigate, onToast }: Props) {
               </div>
             </div>
           )}
+          </div>
 
           {stats.ventasRecientes.length === 0 && stats.topProductos.length === 0 && (
             <div className="text-center py-12">

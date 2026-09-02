@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react'
-import { LogOut } from 'lucide-react'
-import { MobileWrapper } from './components/layout/MobileWrapper'
-import { BottomNav } from './components/layout/BottomNav'
+import { AppShell } from './components/layout/AppShell'
 import { Toast } from './components/ui/Toast'
 import { Dashboard } from './screens/Dashboard'
 import { Semaforo } from './screens/Semaforo'
@@ -40,28 +38,16 @@ export default function AdminApp() {
   }
 
   return (
-    <MobileWrapper>
-      <div className="relative h-full bg-app">
-        {/* Toast notifications */}
-        <Toast toasts={toasts} onRemove={removeToast} />
+    <AppShell
+      active={screen}
+      onChange={setScreen}
+      onSignOut={() => supabase.auth.signOut()}
+    >
+      <Toast toasts={toasts} onRemove={removeToast} />
 
-        {/* Cerrar sesión */}
-        <button
-          onClick={() => supabase.auth.signOut()}
-          title="Cerrar sesión"
-          className="fixed top-4 right-4 z-40 md:absolute w-8 h-8 rounded-full bg-white/8 border border-white/10 flex items-center justify-center text-white/50 active:scale-90 transition-all"
-        >
-          <LogOut size={14} />
-        </button>
-
-        {/* Screen content */}
-        <div key={screen} className="animate-fade-in min-h-full">
-          {screens[screen]}
-        </div>
-
-        {/* Bottom navigation */}
-        <BottomNav active={screen} onChange={setScreen} cartCount={0} />
+      <div key={screen} className="animate-fade-in">
+        {screens[screen]}
       </div>
-    </MobileWrapper>
+    </AppShell>
   )
 }

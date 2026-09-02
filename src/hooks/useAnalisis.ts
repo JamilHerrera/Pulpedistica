@@ -38,8 +38,9 @@ export function useAnalisis() {
 
         supabase
           .from('detalle_ventas')
-          .select('cantidad, subtotal, productos(id, nombre, categorias(nombre, color_semaforo))')
-          .gte('created_at' as never, desde.toISOString()),
+          .select('cantidad, subtotal, productos(id, nombre, categorias(nombre, color_semaforo)), ventas!inner(fecha_hora, anulada)')
+          .gte('ventas.fecha_hora', desde.toISOString())
+          .eq('ventas.anulada', false),
       ])
 
       const ventas = ventasRes.data ?? []

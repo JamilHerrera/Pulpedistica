@@ -102,10 +102,10 @@ function MontoLibreModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:absolute" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[390px] glass-card rounded-t-3xl p-5 pb-8 space-y-4 animate-slide-up"
+        className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -384,12 +384,12 @@ export function NuevaVenta({ onToast }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full pb-36 pt-16">
+    <div className="flex flex-col">
 
       {/* Header */}
-      <div className="px-4 pt-2 pb-3 space-y-3">
+      <div className="pb-3 space-y-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Nueva Venta</h1>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Nueva venta</h2>
           <div className="flex items-center gap-2">
             {/* Monto Libre button */}
             <button
@@ -407,7 +407,7 @@ export function NuevaVenta({ onToast }: Props) {
         </div>
 
         {/* Buscador */}
-        <div className="relative">
+        <div className="relative max-w-xl">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
           <input
             type="text"
@@ -425,7 +425,7 @@ export function NuevaVenta({ onToast }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollable px-4 space-y-3">
+      <div className="flex-1 space-y-3">
 
         {/* Acceso rápido — productos frecuentes */}
         {!query && frecuentes.length > 0 && (
