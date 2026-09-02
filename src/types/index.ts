@@ -9,7 +9,6 @@ export interface Producto {
   nombre: string
   stock_actual: number
   categoria_id: string
-  precio?: number
   categorias?: Categoria
 }
 

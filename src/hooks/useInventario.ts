@@ -66,11 +66,13 @@ export function useInventario() {
   }, [])
 
   const agregarProducto = useCallback(
-    async (nombre: string, stock_actual: number, categoria_id: string, precio?: number): Promise<boolean> => {
+    // El precio no se guarda en productos: se captura por venta en
+    // detalle_ventas.subtotal (ver el cache de precios en useVenta).
+    async (nombre: string, stock_actual: number, categoria_id: string): Promise<boolean> => {
       try {
         const { error } = await supabase
           .from('productos')
-          .insert({ nombre, stock_actual, categoria_id, ...(precio ? { precio } : {}) })
+          .insert({ nombre, stock_actual, categoria_id })
         if (error) throw error
         await fetchData()
         return true
