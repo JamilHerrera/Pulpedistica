@@ -1,5 +1,5 @@
 {
-  "generado_at": "2026-09-02T04:20:20Z",
+  "generado_at": "2026-09-02T04:53:20Z",
   "motor": "postgres",
   "tablas": [
     {
@@ -35,7 +35,7 @@
     },
     {
       "nombre": "clientes",
-      "filas": 0,
+      "filas": 1,
       "columnas": [
         {
           "nombre": "id",
@@ -78,7 +78,7 @@
     },
     {
       "nombre": "detalle_ventas",
-      "filas": 19,
+      "filas": 22,
       "columnas": [
         {
           "nombre": "id",
@@ -132,7 +132,7 @@
     },
     {
       "nombre": "fiados",
-      "filas": 0,
+      "filas": 1,
       "columnas": [
         {
           "nombre": "id",
@@ -223,6 +223,12 @@
           "tipo": "uuid",
           "pk": false,
           "nulo": true
+        },
+        {
+          "nombre": "precio",
+          "tipo": "numeric(10,2)",
+          "pk": false,
+          "nulo": true
         }
       ],
       "indices": [
@@ -241,7 +247,7 @@
     },
     {
       "nombre": "ventas",
-      "filas": 19,
+      "filas": 22,
       "columnas": [
         {
           "nombre": "id",
