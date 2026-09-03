@@ -1,7 +1,8 @@
 # Environment variables (DO NOT COMMIT)
+# La plantilla sin credenciales vive en env.example, sin punto inicial
+# para que los escaneres de secretos no la confundan con un .env real.
 .env
 .env.*
-!.env.example
 
 # Logs
 logs
