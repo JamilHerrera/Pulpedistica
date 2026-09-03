@@ -1,7 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
 
 // En produccion Vercel resuelve /login con login.html; el dev server de Vite
 // haria fallback a index.html, asi que replicamos la ruta para que dev y prod
@@ -19,6 +18,10 @@ function loginRoute(): Plugin {
   }
 }
 
+// El service worker y el manifest se escriben a mano en public/ (sw.js y
+// manifest.webmanifest) en vez de generarlos con vite-plugin-pwa: asi el
+// archivo versionado en el repo es exactamente el que sirve el sitio, y la
+// estrategia de cache queda explicita y auditable en una sola pagina de codigo.
 export default defineConfig({
   build: {
     rollupOptions: {
@@ -28,42 +31,5 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    react(),
-    loginRoute(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'PulpeAnálisis',
-        short_name: 'PulpeAnálisis',
-        description: 'Sistema inteligente de rotación de inventarios y ventas express',
-        lang: 'es',
-        dir: 'ltr',
-        theme_color: '#070714',
-        background_color: '#070714',
-        display: 'standalone',
-        orientation: 'portrait',
-        icons: [
-          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        // Sin esto el service worker responderia index.html a toda navegacion,
-        // incluidas /login (documento propio) y las rutas que el middleware
-        // debe resolver en el servidor con 404 o redirect.
-        navigateFallbackDenylist: [/^\/login/, /^\/api\//],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/cjrmtkxsomfvnqmyxoax\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache', expiration: { maxEntries: 50, maxAgeSeconds: 300 } },
-          },
-        ],
-      },
-    }),
-  ],
+  plugins: [react(), loginRoute()],
 })

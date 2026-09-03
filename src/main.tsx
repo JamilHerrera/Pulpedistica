@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
+import { registrarServiceWorker } from './lib/registrarSW'
+
+registrarServiceWorker()
 
 const root = createRoot(document.getElementById('root')!)
 

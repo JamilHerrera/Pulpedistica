@@ -1,5 +1,8 @@
 import './index.css'
 import { supabase } from './lib/supabase'
+import { registrarServiceWorker } from './lib/registrarSW'
+
+registrarServiceWorker()
 
 const form = document.getElementById('login-form') as HTMLFormElement
 const email = document.getElementById('email') as HTMLInputElement
