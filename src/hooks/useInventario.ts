@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import type { Producto, Categoria } from '../types'
 
 export function useInventario() {
@@ -14,13 +15,13 @@ export function useInventario() {
   const fetchData = useCallback(async () => {
     try {
       setError(null)
-      const [prodRes, catRes] = await Promise.all([
+      const [prodRes, catRes] = await consultaCacheada('inventario:listado', () => Promise.all([
         supabase
           .from('productos')
           .select('*, categorias(id, nombre, color_semaforo)')
           .order('nombre'),
         supabase.from('categorias').select('*').order('nombre'),
-      ])
+      ]), TTL.corto)
       if (prodRes.error) throw prodRes.error
       if (catRes.error) throw catRes.error
       setProductos((prodRes.data ?? []) as Producto[])
@@ -74,6 +75,7 @@ export function useInventario() {
           .from('productos')
           .insert({ nombre, stock_actual, categoria_id })
         if (error) throw error
+        invalidar('inventario', 'productos', 'semaforo', 'dashboard', 'estancados', 'venta')
         await fetchData()
         return true
       } catch (e) {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, TTL } from '../lib/cache'
 
 export interface VentaDiaria { dia: string; monto: number; ventas: number }
 export interface TopProducto { nombre: string; cantidad: number; subtotal: number }
@@ -28,7 +29,7 @@ export function useAnalisis() {
       desde.setDate(desde.getDate() - (periodo - 1))
       desde.setHours(0, 0, 0, 0)
 
-      const [ventasRes, detallesRes] = await Promise.all([
+      const [ventasRes, detallesRes] = await consultaCacheada(`analisis:${periodo}`, () => Promise.all([
         supabase
           .from('ventas')
           .select('id, fecha_hora, monto_total')
@@ -41,7 +42,7 @@ export function useAnalisis() {
           .select('cantidad, subtotal, productos(id, nombre, categorias(nombre, color_semaforo)), ventas!inner(fecha_hora, anulada)')
           .gte('ventas.fecha_hora', desde.toISOString())
           .eq('ventas.anulada', false),
-      ])
+      ]), TTL.corto)
 
       const ventas = ventasRes.data ?? []
       const detalles = (detallesRes.data ?? []) as unknown as Array<{

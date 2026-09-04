@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, invalidar, TTL } from '../lib/cache'
+import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
 import type { Cliente, Fiado } from '../types'
 
 export function useFiados() {
@@ -13,7 +15,7 @@ export function useFiados() {
   const fetchData = useCallback(async () => {
     try {
       setError(null)
-      const [fiadosRes, clientesRes] = await Promise.all([
+      const [fiadosRes, clientesRes] = await consultaCacheada('fiados:listado', () => Promise.all([
         supabase
           .from('fiados')
           .select('*, clientes(id, nombre, telefono, notas, created_at)')
@@ -22,7 +24,7 @@ export function useFiados() {
           .from('clientes')
           .select('*')
           .order('nombre'),
-      ])
+      ]), TTL.corto)
 
       if (fiadosRes.error) throw fiadosRes.error
       if (clientesRes.error) throw clientesRes.error
@@ -37,6 +39,11 @@ export function useFiados() {
     }
   }, [])
 
+  const refrescar = useCallback(async () => {
+    invalidar('fiados')
+    await fetchData()
+  }, [fetchData])
+
   const crearCliente = useCallback(
     async (nombre: string, telefono?: string): Promise<Cliente | null> => {
       try {
@@ -46,32 +53,35 @@ export function useFiados() {
           .select()
           .single()
         if (err) throw err
-        await fetchData()
+        await refrescar()
         return data as Cliente
       } catch (e) {
         console.error('Error creando cliente:', e)
         return null
       }
     },
-    [fetchData],
+    [refrescar],
   )
 
   const registrarFiado = useCallback(
     async (clienteId: string, monto: number): Promise<boolean> => {
       if (monto <= 0) return false
       try {
-        const { error: err } = await supabase
-          .from('fiados')
-          .insert({ cliente_id: clienteId, monto })
-        if (err) throw err
-        await fetchData()
+        // Clave por intento: si se toca dos veces o el navegador reintenta,
+        // la base rechaza el duplicado y se reusa la deuda ya creada.
+        await insertarIdempotente(
+          'fiados',
+          { cliente_id: clienteId, monto },
+          nuevaClave(),
+        )
+        await refrescar()
         return true
       } catch (e) {
         console.error('Error registrando fiado:', e)
         return false
       }
     },
-    [fetchData],
+    [refrescar],
   )
 
   // La base exige que `pagado` y `fecha_pago` viajen juntos
@@ -79,19 +89,22 @@ export function useFiados() {
   const marcarPagado = useCallback(
     async (fiadoId: string, pagado: boolean): Promise<boolean> => {
       try {
+        // La condicion `pagado = !pagado` hace la operacion idempotente:
+        // repetirla no afecta ninguna fila y el estado no cambia dos veces.
         const { error: err } = await supabase
           .from('fiados')
           .update({ pagado, fecha_pago: pagado ? new Date().toISOString() : null })
           .eq('id', fiadoId)
+          .eq('pagado', !pagado)
         if (err) throw err
-        await fetchData()
+        await refrescar()
         return true
       } catch (e) {
         console.error('Error actualizando el fiado:', e)
         return false
       }
     },
-    [fetchData],
+    [refrescar],
   )
 
   const eliminarFiado = useCallback(
@@ -99,14 +112,14 @@ export function useFiados() {
       try {
         const { error: err } = await supabase.from('fiados').delete().eq('id', fiadoId)
         if (err) throw err
-        await fetchData()
+        await refrescar()
         return true
       } catch (e) {
         console.error('Error eliminando el fiado:', e)
         return false
       }
     },
-    [fetchData],
+    [refrescar],
   )
 
   useEffect(() => {
@@ -114,15 +127,15 @@ export function useFiados() {
 
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fiados' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fiados' }, refrescar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refrescar)
       .subscribe()
 
     return () => {
       channel.unsubscribe()
       supabase.removeChannel(channel)
     }
-  }, [fetchData])
+  }, [fetchData, refrescar])
 
   const pendientes = fiados.filter((f) => !f.pagado)
   const totalAdeudado = pendientes.reduce((s, f) => s + Number(f.monto ?? 0), 0)
@@ -140,6 +153,6 @@ export function useFiados() {
     registrarFiado,
     marcarPagado,
     eliminarFiado,
-    refetch: fetchData,
+    refetch: refrescar,
   }
 }

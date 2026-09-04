@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, invalidar, TTL } from '../lib/cache'
+import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
 import type { Producto, CartItem } from '../types'
 
 export function useVenta() {
@@ -8,6 +10,11 @@ export function useVenta() {
   // Precios ya fijados en esta sesión, para que la UI los muestre al instante
   // sin esperar a releer el catálogo. La fuente de verdad es productos.precio.
   const [preciosLocales, setPreciosLocales] = useState<Record<string, number>>({})
+
+  // Una clave por intento de cobro. Se mantiene mientras el carrito siga
+  // igual, así un segundo toque o un reintento del navegador registran la
+  // MISMA venta en vez de duplicarla, y se renueva recien al vaciarse.
+  const claveVenta = useRef(nuevaClave())
 
   const searchProductos = useCallback(async (query: string): Promise<Producto[]> => {
     if (!query.trim()) return []
@@ -78,34 +85,22 @@ export function useVenta() {
     if (cart.length === 0) return false
     setSaving(true)
     try {
-      const { data: venta, error: ventaErr } = await supabase
-        .from('ventas')
-        .insert({ monto_total: total, fecha_hora: new Date().toISOString() })
-        .select()
-        .single()
+      // Una sola llamada transaccional: inserta la venta, su detalle y
+      // descuenta el stock, o no hace nada. Repetirla con la misma clave
+      // devuelve la venta ya registrada sin volver a descontar.
+      const { error } = await supabase.rpc('registrar_venta', {
+        p_idempotency_key: claveVenta.current,
+        p_items: cart.map((item) => ({
+          producto_id: item.producto.id,
+          cantidad: item.cantidad,
+          precio_unitario: item.precio_unitario,
+        })),
+      })
+      if (error) throw error
 
-      if (ventaErr || !venta) throw ventaErr ?? new Error('No se pudo crear la venta')
-
-      const detalles = cart.map((item) => ({
-        venta_id: venta.id,
-        producto_id: item.producto.id,
-        cantidad: item.cantidad,
-        subtotal: item.cantidad * item.precio_unitario,
-      }))
-
-      const { error: detalleErr } = await supabase.from('detalle_ventas').insert(detalles)
-      if (detalleErr) throw detalleErr
-
-      await Promise.all(
-        cart.map((item) =>
-          supabase
-            .from('productos')
-            .update({ stock_actual: Math.max(0, item.producto.stock_actual - item.cantidad) })
-            .eq('id', item.producto.id),
-        ),
-      )
-
+      invalidar('ventas', 'productos', 'dashboard', 'semaforo', 'analisis', 'inventario', 'estancados')
       setCart([])
+      claveVenta.current = nuevaClave()
       return true
     } catch (e) {
       console.error('Error confirmando venta:', e)
@@ -113,9 +108,8 @@ export function useVenta() {
     } finally {
       setSaving(false)
     }
-  }, [cart, total])
+  }, [cart])
 
-  /** Precio de catálogo del producto, o el fijado recién en esta sesión. */
   const getPrecio = useCallback(
     (producto: Producto) => preciosLocales[producto.id] ?? Number(producto.precio ?? 0),
     [preciosLocales],
@@ -124,10 +118,10 @@ export function useVenta() {
   // Top products by frequency in detalle_ventas (client-side aggregation)
   const getProductosFrecuentes = useCallback(async (): Promise<Producto[]> => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await consultaCacheada('venta:frecuentes', () => supabase
         .from('detalle_ventas')
         .select('producto_id, cantidad, productos(id, nombre, stock_actual, categoria_id, categorias(id, nombre, color_semaforo))')
-        .limit(500)
+        .limit(500), TTL.medio)
       if (error) throw error
 
       const countMap = new Map<string, { producto: Producto; apariciones: number }>()
@@ -156,10 +150,9 @@ export function useVenta() {
     if (monto <= 0) return false
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('ventas')
-        .insert({ monto_total: monto, fecha_hora: new Date().toISOString() })
-      if (error) throw error
+      await insertarIdempotente('ventas', { monto_total: monto }, claveVenta.current)
+      invalidar('ventas', 'dashboard', 'analisis')
+      claveVenta.current = nuevaClave()
       return true
     } catch (e) {
       console.error('Error registrando monto libre:', e)

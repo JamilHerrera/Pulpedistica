@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import type { DashboardStats, Venta } from '../types'
 
 const STOCK_MIN = 5
@@ -23,7 +24,9 @@ export function useDashboard() {
       inicioSemana.setDate(inicioSemana.getDate() - 6)
       inicioSemana.setHours(0, 0, 0, 0)
 
-      const [ventasHoyRes, semanaRes, productosRes, recientesRes, topRes] = await Promise.all([
+      const [ventasHoyRes, semanaRes, productosRes, recientesRes, topRes] = await consultaCacheada(
+        `dashboard:${hoy.toDateString()}`,
+        () => Promise.all([
         // Métricas: excluir anuladas
         supabase
           .from('ventas')
@@ -56,7 +59,9 @@ export function useDashboard() {
           .gte('ventas.fecha_hora', inicioSemana.toISOString())
           .order('cantidad', { ascending: false })
           .limit(5),
-      ])
+        ]),
+        TTL.corto,
+      )
 
       const ventasHoy    = ventasHoyRes.data ?? []
       const ventasSemana = semanaRes.data ?? []
@@ -103,44 +108,21 @@ export function useDashboard() {
     }
   }, [])
 
-  // Anular venta: marca como anulada y restaura el stock de los productos
+  // Anular venta. La funcion de base marca la venta y devuelve el stock en
+  // una sola transaccion, y solo si todavia no estaba anulada: repetir la
+  // llamada no vuelve a sumar mercaderia al inventario.
   const anularVenta = useCallback(async (ventaId: string): Promise<boolean> => {
     try {
-      // Obtener detalle para restaurar stock
-      const { data: detalles, error: detErr } = await supabase
-        .from('detalle_ventas')
-        .select('producto_id, cantidad')
-        .eq('venta_id', ventaId)
-      if (detErr) throw detErr
+      const { data: seAnulo, error } = await supabase.rpc('anular_venta', {
+        p_venta_id: ventaId,
+      })
+      if (error) throw error
 
-      // Marcar venta como anulada
-      const { error: ventaErr } = await supabase
-        .from('ventas')
-        .update({ anulada: true })
-        .eq('id', ventaId)
-      if (ventaErr) throw ventaErr
-
-      // Restaurar stock de cada producto involucrado
-      if (detalles && detalles.length > 0) {
-        await Promise.all(
-          detalles.map(async (d) => {
-            const { data: prod } = await supabase
-              .from('productos')
-              .select('stock_actual')
-              .eq('id', d.producto_id)
-              .single()
-            if (prod) {
-              await supabase
-                .from('productos')
-                .update({ stock_actual: prod.stock_actual + d.cantidad })
-                .eq('id', d.producto_id)
-            }
-          }),
-        )
-      }
-
+      invalidar('dashboard', 'ventas', 'productos', 'inventario', 'semaforo', 'analisis', 'estancados')
       await fetchStats()
-      return true
+      // `false` = ya estaba anulada. Para la pantalla el desenlace es el
+      // mismo, asi que se informa exito igual.
+      return seAnulo !== null
     } catch (e) {
       console.error('Error anulando venta:', e)
       return false
@@ -150,10 +132,16 @@ export function useDashboard() {
   useEffect(() => {
     fetchStats()
 
+    // Sin invalidar primero, el refresco devolveria lo que ya hay en cache.
+    const alCambiar = () => {
+      invalidar('dashboard', 'ventas', 'productos')
+      fetchStats()
+    }
+
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, fetchStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'detalle_ventas' }, fetchStats)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, alCambiar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'detalle_ventas' }, alCambiar)
       .subscribe()
 
     return () => {

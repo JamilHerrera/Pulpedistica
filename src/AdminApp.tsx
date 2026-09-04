@@ -9,6 +9,7 @@ import { Inventario } from './screens/Inventario'
 import { Analisis } from './screens/Analisis'
 import { supabase } from './lib/supabase'
 import { migrarPreciosLocales } from './lib/migrarPrecios'
+import { limpiarCache } from './lib/cache'
 import type { Screen, ToastMessage, ToastType } from './types'
 
 let toastCounter = 0
@@ -47,7 +48,11 @@ export default function AdminApp() {
     <AppShell
       active={screen}
       onChange={setScreen}
-      onSignOut={() => supabase.auth.signOut()}
+      onSignOut={() => {
+        // Sin esto, la siguiente sesion veria datos cacheados de la anterior.
+        limpiarCache()
+        supabase.auth.signOut()
+      }}
     >
       <Toast toasts={toasts} onRemove={removeToast} />
 

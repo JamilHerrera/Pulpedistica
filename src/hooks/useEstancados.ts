@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, TTL } from '../lib/cache'
 
 export interface ProductoEstancado {
   id: string
@@ -25,11 +26,11 @@ export function useEstancados() {
       const desde30d = new Date(hoy.getTime() - 30 * 86_400_000).toISOString()
 
       // 1. Todos los productos con stock > 0
-      const prodRes = await supabase
+      const prodRes = await consultaCacheada('estancados:productos', () => supabase
         .from('productos')
         .select('id, nombre, stock_actual, categoria_id, categorias(id, nombre)')
         .gt('stock_actual', 0)
-        .order('stock_actual', { ascending: false })
+        .order('stock_actual', { ascending: false }), TTL.medio)
 
       if (prodRes.error) throw prodRes.error
       const productos = (prodRes.data ?? []) as any[]

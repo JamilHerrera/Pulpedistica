@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { consultaCacheada, TTL } from '../lib/cache'
 
 export type NivelRotacion = 'alta' | 'media' | 'baja'
 
@@ -64,7 +65,7 @@ export function useSemaforo() {
       const desde15d = new Date(now - 15 * 86_400_000).toISOString()
       const desde7d  = new Date(now -  7 * 86_400_000).toISOString()
 
-      const [prodRes, ventasRes] = await Promise.all([
+      const [prodRes, ventasRes] = await consultaCacheada(`semaforo:${periodo}`, () => Promise.all([
         supabase
           .from('productos')
           .select('id, nombre, stock_actual, categoria_id, categorias(id, nombre)')
@@ -74,7 +75,7 @@ export function useSemaforo() {
           .select('fecha_hora, detalle_ventas(producto_id, cantidad)')
           .gte('fecha_hora', desde30d)
           .eq('anulada', false),
-      ])
+      ]), TTL.corto)
 
       if (prodRes.error)   throw prodRes.error
       if (ventasRes.error) throw ventasRes.error
