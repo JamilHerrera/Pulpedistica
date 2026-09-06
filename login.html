@@ -15,41 +15,46 @@
       <link rel="manifest" href="/manifest.webmanifest" />
   </head>
   <body>
-    <main class="min-h-screen flex items-center justify-center bg-app px-4 font-sans">
+    <main class="min-h-screen flex items-center justify-center bg-app px-4 py-8 font-sans">
       <div class="w-full max-w-sm glass-card p-6 space-y-6">
         <div class="text-center space-y-1">
-          <h1 class="text-white font-bold text-xl">Iniciar sesión</h1>
-          <p class="text-white/40 text-sm">Accedé al panel de PulpeAnálisis</p>
+          <h1 id="titulo" class="text-white font-bold text-xl">Iniciar sesión</h1>
+          <p id="subtitulo" class="text-white/40 text-sm">Accedé al panel de PulpeAnálisis</p>
+        </div>
+
+        <div class="flex gap-1 p-1 bg-white/5 rounded-2xl border border-white/8">
+          <button id="tab-entrar" type="button"
+            class="flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-brand text-white shadow-glow-brand">
+            Entrar
+          </button>
+          <button id="tab-registro" type="button"
+            class="flex-1 py-2 rounded-xl text-xs font-bold transition-all text-white/40">
+            Crear cuenta
+          </button>
         </div>
 
         <form id="login-form" method="post" action="/login" class="space-y-4">
+          <div id="campo-negocio" class="space-y-1.5" hidden>
+            <label for="negocio" class="stat-label">Nombre de tu pulpería</label>
+            <input id="negocio" name="negocio" type="text" class="input-field"
+              placeholder="Ej: Pulpería La Esquina" />
+          </div>
+
           <div class="space-y-1.5">
             <label for="email" class="stat-label">Correo</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autocomplete="email"
-              class="input-field"
-              placeholder="tucorreo@ejemplo.com"
-            />
+            <input id="email" name="email" type="email" required autocomplete="email"
+              class="input-field" placeholder="tucorreo@ejemplo.com" />
           </div>
 
           <div class="space-y-1.5">
             <label for="password" class="stat-label">Contraseña</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autocomplete="current-password"
-              class="input-field"
-              placeholder="••••••••"
-            />
+            <input id="password" name="password" type="password" required
+              autocomplete="current-password" class="input-field" placeholder="••••••••" />
+            <p id="ayuda-password" class="text-white/25 text-xs" hidden>Mínimo 8 caracteres.</p>
           </div>
 
           <p id="login-error" hidden class="text-danger-light text-sm bg-danger/10 border border-danger/20 rounded-xl px-3 py-2"></p>
+          <p id="login-ok" hidden class="text-success text-sm bg-success/10 border border-success/20 rounded-xl px-3 py-2"></p>
 
           <button id="login-submit" type="submit" class="btn-primary w-full disabled:opacity-50">
             Entrar

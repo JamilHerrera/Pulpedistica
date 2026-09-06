@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -36,6 +36,7 @@ order by version;
 | 007 | `007_integridad.sql` | `NOT NULL`, defaults, rangos válidos y nombres únicos |
 | 008 | `008_idempotencia.sql` | Claves de idempotencia en `ventas` y `fiados` |
 | 009 | `009_operaciones_transaccionales.sql` | `registrar_venta` y `anular_venta`: atómicas e idempotentes |
+| 010 | `010_multi_negocio.sql` | Cada pulpería ve solo sus datos; alta automática al registrarse |
 
 ## Notas
 
