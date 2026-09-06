@@ -17,12 +17,35 @@ const titulo      = document.getElementById('titulo')         as HTMLHeadingElem
 const subtitulo   = document.getElementById('subtitulo')      as HTMLParagraphElement
 const tabEntrar   = document.getElementById('tab-entrar')     as HTMLButtonElement
 const tabRegistro = document.getElementById('tab-registro')   as HTMLButtonElement
+const sesionActiva= document.getElementById('sesion-activa')  as HTMLDivElement
+const sesionCorreo= document.getElementById('sesion-correo')  as HTMLSpanElement
+const bloqueAcceso= document.getElementById('bloque-acceso')  as HTMLDivElement
+const btnSalir    = document.getElementById('btn-salir')      as HTMLButtonElement
 
 type Modo = 'entrar' | 'registro'
 let modo: Modo = 'entrar'
 
+// Con una sesión abierta NO se salta al panel automáticamente: eso dejaba
+// inalcanzable el formulario de "Crear cuenta" y, en una computadora
+// compartida, metía al visitante en la cuenta de otro sin avisarle.
 supabase.auth.getSession().then(({ data }) => {
-  if (data.session) window.location.replace('/admin')
+  if (data.session) {
+    sesionCorreo.textContent = data.session.user.email ?? 'tu cuenta'
+    sesionActiva.hidden = false
+  } else {
+    bloqueAcceso.hidden = false
+  }
+})
+
+btnSalir.addEventListener('click', async () => {
+  btnSalir.disabled = true
+  btnSalir.textContent = 'Cerrando sesión…'
+  await supabase.auth.signOut()
+  sesionActiva.hidden = true
+  bloqueAcceso.hidden = false
+  btnSalir.disabled = false
+  btnSalir.textContent = 'Salir y usar otra cuenta'
+  cambiarModo('registro')
 })
 
 function mostrarError(mensaje: string) {
@@ -66,6 +89,8 @@ function cambiarModo(nuevo: Modo) {
 
 tabEntrar.addEventListener('click', () => cambiarModo('entrar'))
 tabRegistro.addEventListener('click', () => cambiarModo('registro'))
+
+if (new URLSearchParams(location.search).has('registro')) cambiarModo('registro')
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault()

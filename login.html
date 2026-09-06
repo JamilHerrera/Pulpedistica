@@ -17,6 +17,24 @@
   <body>
     <main class="min-h-screen flex items-center justify-center bg-app px-4 py-8 font-sans">
       <div class="w-full max-w-sm glass-card p-6 space-y-6">
+        <div id="sesion-activa" hidden class="space-y-4">
+          <div class="text-center space-y-1">
+            <h1 class="text-white font-bold text-xl">Ya tenés una sesión abierta</h1>
+            <p class="text-white/40 text-sm">
+              Estás dentro como <span id="sesion-correo" class="text-brand-light"></span>
+            </p>
+          </div>
+          <a href="/admin" class="btn-primary w-full block text-center">Ir al panel</a>
+          <button id="btn-salir" type="button"
+            class="w-full py-3 rounded-2xl bg-white/8 text-white/60 font-semibold text-sm active:scale-95 transition-all">
+            Salir y usar otra cuenta
+          </button>
+          <p class="text-center text-white/25 text-xs">
+            <a href="/" class="hover:text-white/50 transition-colors">← Volver al inicio</a>
+          </p>
+        </div>
+
+        <div id="bloque-acceso" hidden class="space-y-6">
         <div class="text-center space-y-1">
           <h1 id="titulo" class="text-white font-bold text-xl">Iniciar sesión</h1>
           <p id="subtitulo" class="text-white/40 text-sm">Accedé al panel de PulpeAnálisis</p>
@@ -64,6 +82,7 @@
         <p class="text-center text-white/25 text-xs">
           <a href="/" class="hover:text-white/50 transition-colors">← Volver al inicio</a>
         </p>
+        </div>
       </div>
     </main>
 

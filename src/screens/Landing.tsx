@@ -12,6 +12,9 @@ export function Landing() {
     <div className="min-h-screen bg-app font-sans text-white flex flex-col">
       <header className="max-w-5xl mx-auto w-full px-6 py-6 flex items-center justify-between">
         <span className="font-black text-lg tracking-tight">PulpeAnálisis ✦</span>
+        <a href="/login?registro=1" className="btn-ghost flex items-center gap-2 text-sm">
+          Crear cuenta
+        </a>
         <a href="/login" className="btn-ghost flex items-center gap-2 text-sm">
           <LogIn size={15} /> Iniciar sesión
         </a>
