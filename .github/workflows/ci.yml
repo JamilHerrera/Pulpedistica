@@ -1,0 +1,46 @@
+name: CI
+
+# Corre en cada push a main y en cada pull request: la idea es enterarse del
+# problema antes de desplegar, no después.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verificar:
+    name: Tipos, pruebas y build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # `npm ci` instala exactamente lo que fija package-lock.json, así el
+      # pipeline no puede pasar por una versión distinta a la del proyecto.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Cada paso es independiente para que el error diga qué se rompió, en
+      # vez de un único "build failed" sin pistas.
+      - name: Verificar tipos
+        run: npx tsc --noEmit
+
+      - name: Ejecutar pruebas
+        run: npm test
+
+      - name: Compilar
+        run: npm run build
+        env:
+          # Valores de relleno: el build no se conecta a Supabase, pero la app
+          # muestra una pantalla de "configuración incompleta" si faltan, y así
+          # se compila la ruta real.
+          VITE_SUPABASE_URL: https://ejemplo.supabase.co
+          VITE_SUPABASE_ANON_KEY: clave-de-ci

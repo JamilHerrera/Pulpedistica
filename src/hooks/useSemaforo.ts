@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { consultaCacheada, TTL } from '../lib/cache'
+import { calcularNivel, ORDEN_NIVELES, type NivelRotacion } from '../lib/semaforo'
 
-export type NivelRotacion = 'alta' | 'media' | 'baja'
+export type { NivelRotacion }
 
 export interface ProductoConRotacion {
   id: string
@@ -29,22 +30,6 @@ export interface TotalesSemaforo {
   vendidos30d: number
   sinMovimiento: number
 }
-
-// Umbrales de unidades vendidas para clasificar rotación
-const UMBRALES = {
-  7:  { alta: 7,  media: 3 },
-  15: { alta: 12, media: 5 },
-  30: { alta: 20, media: 7 },
-} as const
-
-function calcularNivel(unidades: number, dias: 7 | 15 | 30): NivelRotacion {
-  const u = UMBRALES[dias]
-  if (unidades >= u.alta)  return 'alta'
-  if (unidades >= u.media) return 'media'
-  return 'baja'  // includes 0-sale products (shown with SIN VENTAS badge)
-}
-
-const ORDEN_NIVELES: NivelRotacion[] = ['alta', 'media', 'baja']
 
 export function useSemaforo() {
   const [periodo, setPeriodo] = useState<7 | 15 | 30>(30)

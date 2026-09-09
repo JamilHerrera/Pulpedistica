@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Package } from 'lucide-react'
 import { useSemaforo } from '../hooks/useSemaforo'
+import { etiquetaUmbral } from '../lib/semaforo'
 import type { GrupoRotacion, NivelRotacion, ProductoConRotacion } from '../hooks/useSemaforo'
 
 function LoadingSpinner() {
@@ -177,12 +178,6 @@ function GrupoCard({
 export function Semaforo() {
   const { grupos, totales, loading, error, lastUpdate, periodo, setPeriodo, refetch } = useSemaforo()
 
-  const UMBRALES_LABEL = {
-    7:  { alta: '≥ 7 uds',  media: '3–6 uds',   baja: '1–2 uds' },
-    15: { alta: '≥ 12 uds', media: '5–11 uds',  baja: '1–4 uds' },
-    30: { alta: '≥ 20 uds', media: '7–19 uds',  baja: '1–6 uds' },
-  }
-
   const resumen = grupos.reduce<Record<NivelRotacion, number>>(
     (acc, g) => { acc[g.nivel] = g.productos.length; return acc },
     { alta: 0, media: 0, baja: 0 },
@@ -274,7 +269,8 @@ export function Semaforo() {
       <div className="flex gap-2 flex-wrap">
         {(['alta', 'media', 'baja'] as NivelRotacion[]).map((nivel) => {
           const cfg = NIVEL_CONFIG[nivel]
-          const threshold = UMBRALES_LABEL[periodo as 7 | 15 | 30][nivel as 'alta' | 'media' | 'baja']
+          // Derivado de los umbrales reales: la leyenda no puede desfasarse de la regla.
+          const threshold = etiquetaUmbral(nivel, periodo)
           return (
             <div key={nivel} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl ${cfg.bg} border ${cfg.ring}`}>
               <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
