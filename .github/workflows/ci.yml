@@ -33,8 +33,17 @@ jobs:
       - name: Verificar tipos
         run: npx tsc --noEmit
 
-      - name: Ejecutar pruebas
-        run: npm test
+      - name: Ejecutar pruebas con cobertura
+        run: npm run test:coverage
+
+      # Queda disponible para descargar desde la pestaña Actions y lo reusa
+      # el análisis de SonarCloud.
+      - name: Guardar el reporte de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage/
+          retention-days: 30
 
       - name: Compilar
         run: npm run build
@@ -44,3 +53,47 @@ jobs:
           # se compila la ruta real.
           VITE_SUPABASE_URL: https://ejemplo.supabase.co
           VITE_SUPABASE_ANON_KEY: clave-de-ci
+
+  sonarcloud:
+    name: Análisis de SonarCloud
+    needs: verificar
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      # Mientras no exista el secreto, el job avisa y termina en verde en vez
+      # de dejar todo el pipeline en rojo.
+      - name: Avisar si falta el token
+        if: env.SONAR_TOKEN == ''
+        run: echo "::warning::Falta el secreto SONAR_TOKEN, se omite el análisis de SonarCloud."
+
+      # fetch-depth 0 trae todo el historial: Sonar lo necesita para saber qué
+      # líneas son "código nuevo" y a quién atribuirlas.
+      - name: Descargar el código
+        if: env.SONAR_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Node
+        if: env.SONAR_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        if: env.SONAR_TOKEN != ''
+        run: npm ci
+
+      # Se regenera la cobertura acá: Sonar la lee de coverage/lcov.info y sin
+      # ella asume 0% en el código nuevo, lo que pone la puerta de calidad en
+      # rojo.
+      - name: Generar cobertura
+        if: env.SONAR_TOKEN != ''
+        run: npm run test:coverage
+
+      - name: Analizar con SonarCloud
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v4
