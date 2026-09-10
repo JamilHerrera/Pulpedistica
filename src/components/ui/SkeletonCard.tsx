@@ -1,10 +1,10 @@
-export function SkeletonCard({ className = '' }: { className?: string }) {
+export function SkeletonCard({ className = '' }: Readonly<{ className?: string }>) {
   return (
     <div className={`skeleton ${className}`} />
   )
 }
 
-export function SkeletonList({ rows = 4 }: { rows?: number }) {
+export function SkeletonList({ rows = 4 }: Readonly<{ rows?: number }>) {
   return (
     <div className="flex flex-col gap-3">
       {Array.from({ length: rows }).map((_, i) => (

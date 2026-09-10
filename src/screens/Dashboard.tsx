@@ -20,16 +20,21 @@ interface Props {
 
 function EstancadosModal({
   estancados, onClose,
-}: { estancados: ProductoEstancado[]; onClose: () => void }) {
+}: Readonly<{ estancados: ProductoEstancado[]; onClose: () => void }>) {
   const formatDias = (d: number) =>
     d >= 999 ? 'Nunca vendido' : `${d} día${d !== 1 ? 's' : ''} sin venta`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
+      />
       <div
         className="relative w-full sm:max-w-2xl glass-card rounded-t-3xl sm:rounded-3xl pb-8 sm:pb-6 animate-slide-up border-t-2 sm:border-t border-orange-500/40 max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/8 shrink-0">
@@ -110,14 +115,19 @@ function EstancadosModal({
 
 // ─── Modal de detalle de venta ────────────────────────────────────────────────
 
-function VentaDetalleModal({ venta, onClose }: { venta: Venta; onClose: () => void }) {
+function VentaDetalleModal({ venta, onClose }: Readonly<{ venta: Venta; onClose: () => void }>) {
   const detalles = venta.detalle_ventas ?? []
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
+      />
       <div
         className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl pb-8 sm:pb-6 animate-slide-up border-t-2 sm:border-t border-accent/40 max-h-[75vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/8 shrink-0">
@@ -200,13 +210,18 @@ function VentaDetalleModal({ venta, onClose }: { venta: Venta; onClose: () => vo
 // ─── Modal de confirmación de anulación ───────────────────────────────────────
 function AnularModal({
   venta, onConfirm, onClose, loading,
-}: { venta: Venta; onConfirm: () => void; onClose: () => void; loading: boolean }) {
+}: Readonly<{ venta: Venta; onConfirm: () => void; onClose: () => void; loading: boolean }>) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
+      />
       <div
         className="relative w-full sm:max-w-md glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up border-t-2 sm:border-t border-danger/40"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -265,7 +280,7 @@ function AnularModal({
   )
 }
 
-function MiniBarChart({ values }: { values: number[] }) {
+function MiniBarChart({ values }: Readonly<{ values: number[] }>) {
   const max = Math.max(...values, 1)
   const today = new Date().getDay()
   return (
@@ -291,7 +306,7 @@ function MiniBarChart({ values }: { values: number[] }) {
   )
 }
 
-export function Dashboard({ onNavigate, onToast }: Props) {
+export function Dashboard({ onNavigate, onToast }: Readonly<Props>) {
   const { stats, loading, error, refetch, anularVenta } = useDashboard()
   const { estancados } = useEstancados()
   const [ventaParaAnular,  setVentaParaAnular]  = useState<Venta | null>(null)
@@ -585,10 +600,10 @@ export function Dashboard({ onNavigate, onToast }: Props) {
 
 function StatCard({
   label, value, icon: Icon, color, suffix, onClick,
-}: {
+}: Readonly<{
   label: string; value: number; icon: typeof TrendingUp
   color: 'danger' | 'success' | 'accent' | 'brand'; suffix?: string; onClick?: () => void
-}) {
+}>) {
   const colorMap = {
     danger:  { bg: 'bg-danger/10',  text: 'text-danger',  border: 'border-danger/20'  },
     success: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },

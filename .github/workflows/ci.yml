@@ -25,8 +25,10 @@ jobs:
 
       # `npm ci` instala exactamente lo que fija package-lock.json, así el
       # pipeline no puede pasar por una versión distinta a la del proyecto.
+      # `--ignore-scripts` impide que un paquete ejecute código durante la
+      # instalación: es la vía habitual de un ataque de cadena de suministro.
       - name: Instalar dependencias
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       # Cada paso es independiente para que el error diga qué se rompió, en
       # vez de un único "build failed" sin pistas.
@@ -85,7 +87,7 @@ jobs:
 
       - name: Instalar dependencias
         if: env.SONAR_TOKEN != ''
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       # Se regenera la cobertura acá: Sonar la lee de coverage/lcov.info y sin
       # ella asume 0% en el código nuevo, lo que pone la puerta de calidad en

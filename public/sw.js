@@ -49,7 +49,7 @@ self.addEventListener('activate', (event) => {
 
 /** ¿Vale la pena guardar esta respuesta? */
 function cacheable(res) {
-  return res && res.ok && res.type === 'basic' && !res.redirected
+  return res?.ok === true && res.type === 'basic' && !res.redirected
 }
 
 self.addEventListener('fetch', (event) => {

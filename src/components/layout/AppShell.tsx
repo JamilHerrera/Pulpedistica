@@ -35,7 +35,7 @@ interface Props {
   children: ReactNode
 }
 
-export function AppShell({ active, onChange, onSignOut, children }: Props) {
+export function AppShell({ active, onChange, onSignOut, children }: Readonly<Props>) {
   const today = new Date().toLocaleDateString('es-HN', {
     weekday: 'long', day: 'numeric', month: 'long',
   })

@@ -19,7 +19,7 @@ function stockStatus(stock: number): { label: string; color: string; bar: string
 
 function ProductoCard({
   producto, onUpdate, isUpdating,
-}: { producto: Producto; onUpdate: (id: string, stock: number) => void; isUpdating: boolean }) {
+}: Readonly<{ producto: Producto; onUpdate: (id: string, stock: number) => void; isUpdating: boolean }>) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(producto.stock_actual.toString())
   const status = stockStatus(producto.stock_actual)
@@ -27,7 +27,7 @@ function ProductoCard({
   const pct = Math.min(100, (producto.stock_actual / max) * 100)
 
   const handleSave = () => {
-    const n = parseInt(val, 10)
+    const n = Number.parseInt(val, 10)
     if (isNaN(n) || n < 0) return
     onUpdate(producto.id, n)
     setEditing(false)
@@ -93,12 +93,12 @@ function ProductoCard({
 
 function AddProductModal({
   categorias, onAdd, onAddCategoria, onClose,
-}: {
+}: Readonly<{
   categorias: { id: string; nombre: string }[]
   onAdd: (nombre: string, stock: number, catId: string) => Promise<boolean>
   onAddCategoria: (nombre: string) => Promise<string | null>
   onClose: () => void
-}) {
+}>) {
   const [tab, setTab] = useState<'producto' | 'categoria'>('producto')
 
   // Producto
@@ -118,7 +118,7 @@ function AddProductModal({
     if (!catId) { setTab('categoria'); return }
     setProdError(null)
     setSaving(true)
-    const ok = await onAdd(nombre.trim(), parseInt(stock, 10) || 0, catId)
+    const ok = await onAdd(nombre.trim(), Number.parseInt(stock, 10) || 0, catId)
     setSaving(false)
     if (ok) onClose()
     else setProdError('No se pudo guardar. Verifica tu conexión a Supabase.')
@@ -140,11 +140,16 @@ function AddProductModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/60 backdrop-blur-sm"
+      />
       <div
         className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-white font-bold text-lg">
@@ -272,7 +277,7 @@ function AddProductModal({
   )
 }
 
-export function Inventario({ onToast }: Props) {
+export function Inventario({ onToast }: Readonly<Props>) {
   const { productos, categorias, loading, error, updatingId, actualizarStock, agregarProducto, agregarCategoria, refetch } = useInventario()
   const [query, setQuery] = useState('')
   const [catFilter, setCatFilter] = useState<string>('todos')

@@ -22,12 +22,12 @@ const fecha = (iso: string) =>
 
 function NuevoFiadoModal({
   clientes, onClose, onCrearCliente, onRegistrar,
-}: {
+}: Readonly<{
   clientes: Cliente[]
   onClose: () => void
   onCrearCliente: (nombre: string, telefono?: string) => Promise<Cliente | null>
   onRegistrar: (clienteId: string, monto: number) => Promise<boolean>
-}) {
+}>) {
   const [modoNuevo, setModoNuevo] = useState(clientes.length === 0)
   const [clienteId, setClienteId] = useState(clientes[0]?.id ?? '')
   const [nombre, setNombre]       = useState('')
@@ -77,11 +77,16 @@ function NuevoFiadoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
+      />
       <form
         onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
         className="relative w-full sm:max-w-md glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up border-t-2 sm:border-t border-brand/40"
       >
         <div className="flex items-center justify-between">
@@ -198,11 +203,11 @@ function NuevoFiadoModal({
 
 function FiadoCard({
   fiado, onTogglePagado, onEliminar,
-}: {
+}: Readonly<{
   fiado: Fiado
   onTogglePagado: (f: Fiado) => void
   onEliminar: (f: Fiado) => void
-}) {
+}>) {
   return (
     <div className={`glass-card p-4 flex items-center gap-3 ${fiado.pagado ? 'opacity-55' : ''}`}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -263,7 +268,7 @@ function FiadoCard({
 
 // ─── Pantalla ────────────────────────────────────────────────────────────────
 
-export function Fiados({ onToast }: Props) {
+export function Fiados({ onToast }: Readonly<Props>) {
   const {
     fiados, clientes, loading, error,
     totalAdeudado, clientesConDeuda, pendientesCount,
@@ -405,11 +410,16 @@ export function Fiados({ onToast }: Props) {
 
       {/* Confirmación de borrado */}
       {porEliminar && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setPorEliminar(null)}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+          {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+          <button
+            type="button"
+            aria-label="Cerrar"
+            onClick={() => setPorEliminar(null)}
+            className="absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
+          />
           <div
             className="relative w-full sm:max-w-md glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up border-t-2 sm:border-t border-danger/40"
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-danger/20 flex items-center justify-center">

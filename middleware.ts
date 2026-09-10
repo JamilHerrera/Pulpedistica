@@ -32,8 +32,14 @@ const NOT_FOUND_HTML = `<!doctype html>
 </html>`
 
 function hasSession(request: Request): boolean {
+  // Se parte la cabecera en vez de usar una expresion regular: la anterior
+  // combinaba \s* con alternativas y podia degradar a tiempo cuadratico ante
+  // una cookie larga y maliciosa (ReDoS). Comparar cadenas es lineal y ademas
+  // se lee mejor.
   const cookie = request.headers.get('cookie') ?? ''
-  return /(?:^|;\s*)pa_session=1(?:\s*;|\s*$)/.test(cookie)
+  return cookie
+    .split(';')
+    .some((parte) => parte.trim() === 'pa_session=1')
 }
 
 export default function middleware(request: Request) {

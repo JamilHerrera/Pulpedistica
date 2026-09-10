@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, TTL } from '../lib/cache'
 import { calcularNivel, ORDEN_NIVELES, type NivelRotacion } from '../lib/semaforo'
 
@@ -39,7 +40,7 @@ export function useSemaforo() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
-  const channelName = useRef(`semaforo-${Math.random().toString(36).slice(2)}`)
+  const channelName = useRef(nombreDeCanal('semaforo'))
   const fetchDataRef = useRef<() => Promise<void>>(() => Promise.resolve())
 
   const fetchData = useCallback(async () => {

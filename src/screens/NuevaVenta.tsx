@@ -14,7 +14,7 @@ interface Props {
 
 function ProductoRapidoBtn({
   producto, cachedPrice, onAdd,
-}: { producto: Producto; cachedPrice: number; onAdd: (p: Producto, price: number) => void }) {
+}: Readonly<{ producto: Producto; cachedPrice: number; onAdd: (p: Producto, price: number) => void }>) {
   const [showInput, setShowInput] = useState(false)
   const [price, setPrice]         = useState(cachedPrice > 0 ? cachedPrice.toString() : '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -35,7 +35,7 @@ function ProductoRapidoBtn({
           onChange={(e) => setPrice(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              const p = parseFloat(price)
+              const p = Number.parseFloat(price)
               if (p > 0) { onAdd(producto, p); setShowInput(false) }
             }
             if (e.key === 'Escape') setShowInput(false)
@@ -47,7 +47,7 @@ function ProductoRapidoBtn({
         />
         <button
           onClick={() => {
-            const p = parseFloat(price)
+            const p = Number.parseFloat(price)
             if (p > 0) { onAdd(producto, p); setShowInput(false) }
           }}
           className="w-6 h-6 rounded-lg bg-brand flex items-center justify-center shrink-0"
@@ -81,7 +81,7 @@ function ProductoRapidoBtn({
 
 function MontoLibreModal({
   onConfirm, onClose, saving,
-}: { onConfirm: (monto: number) => void; onClose: () => void; saving: boolean }) {
+}: Readonly<{ onConfirm: (monto: number) => void; onClose: () => void; saving: boolean }>) {
   const [monto, setMonto]   = useState('')
   const [error, setError]   = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -92,7 +92,7 @@ function MontoLibreModal({
     const raw = monto.trim()
     if (!raw) { setError('Ingresa un monto'); return }
 
-    const n = parseFloat(raw)
+    const n = Number.parseFloat(raw)
     if (isNaN(n))  { setError('Solo se permiten números'); return }
     if (n <= 0)    { setError('El monto debe ser mayor a 0'); return }
     if (n > 99999) { setError('Monto demasiado alto'); return }
@@ -102,11 +102,16 @@ function MontoLibreModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* El fondo es un boton de verdad: enfocable y activable con teclado. */}
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/60 backdrop-blur-sm"
+      />
       <div
         className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -168,7 +173,7 @@ function MontoLibreModal({
         >
           {saving
             ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
-            : <><CheckCircle size={16} /> Registrar L {parseFloat(monto) > 0 ? parseFloat(monto).toFixed(2) : '0.00'}</>
+            : <><CheckCircle size={16} /> Registrar L {Number.parseFloat(monto) > 0 ? Number.parseFloat(monto).toFixed(2) : '0.00'}</>
           }
         </button>
       </div>
@@ -180,7 +185,7 @@ function MontoLibreModal({
 
 function ProductSearchResult({
   producto, onAdd, cachedPrice,
-}: { producto: Producto; onAdd: (p: Producto, price: number) => void; cachedPrice: number }) {
+}: Readonly<{ producto: Producto; onAdd: (p: Producto, price: number) => void; cachedPrice: number }>) {
   const [price, setPrice] = useState(cachedPrice > 0 ? cachedPrice.toString() : '')
   const isLowStock  = producto.stock_actual <= 5
   const outOfStock  = producto.stock_actual === 0
@@ -212,7 +217,7 @@ function ProductSearchResult({
       </div>
       <button
         onClick={() => {
-          const p = parseFloat(price)
+          const p = Number.parseFloat(price)
           if (!p || p <= 0) return
           onAdd(producto, p)
         }}
@@ -233,13 +238,13 @@ function ProductSearchResult({
 
 function CartItemRow({
   item, onIncrease, onDecrease, onRemove, onPriceChange,
-}: {
+}: Readonly<{
   item: { producto: Producto; cantidad: number; precio_unitario: number }
   onIncrease: () => void
   onDecrease: () => void
   onRemove: () => void
   onPriceChange: (p: number) => void
-}) {
+}>) {
   const [editPrice, setEditPrice] = useState(false)
   const [priceVal, setPriceVal]   = useState(item.precio_unitario.toString())
 
@@ -259,7 +264,7 @@ function CartItemRow({
                 autoFocus
                 onChange={(e) => setPriceVal(e.target.value)}
                 onBlur={() => {
-                  const p = parseFloat(priceVal)
+                  const p = Number.parseFloat(priceVal)
                   if (p > 0) onPriceChange(p)
                   setEditPrice(false)
                 }}
@@ -301,7 +306,7 @@ function CartItemRow({
 
 // ─── Pantalla principal ────────────────────────────────────────────────────────
 
-export function NuevaVenta({ onToast }: Props) {
+export function NuevaVenta({ onToast }: Readonly<Props>) {
   const {
     cart, total, saving,
     addToCart, updateCantidad, updatePrecio, removeFromCart, clearCart,

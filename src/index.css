@@ -6,6 +6,10 @@
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    /* Oculta la barra de scroll en Firefox y en Edge/IE. Estaba en un segundo
+       bloque `*` más abajo; unificado acá para no repetir el selector. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   html {
@@ -22,11 +26,6 @@
 
   ::-webkit-scrollbar {
     display: none;
-  }
-
-  * {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
   }
 }
 

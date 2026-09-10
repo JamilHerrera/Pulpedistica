@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 
-export function ProtectedRoute({ children }: { children: ReactNode }) {
+export function ProtectedRoute({ children }: Readonly<{ children: ReactNode }>) {
   const { session, loading } = useAuth()
 
   // El middleware ya frena al visitante anonimo antes de servir el documento;

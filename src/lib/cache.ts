@@ -47,8 +47,10 @@ export async function consultaCacheada<T>(
     return vigente.valor as T
   }
 
+  // Comparación explícita: una promesa siempre es "verdadera", así que un
+  // `if (yaPedida)` no distingue "hay una en vuelo" de "olvidé el await".
   const yaPedida = enVuelo.get(clave)
-  if (yaPedida) return yaPedida as Promise<T>
+  if (yaPedida !== undefined) return yaPedida as Promise<T>
 
   const promesa = consulta()
     .then((valor) => {
@@ -70,7 +72,9 @@ export async function consultaCacheada<T>(
  * el estado anterior.
  */
 export function invalidar(...prefijos: string[]) {
-  for (const clave of [...entradas.keys()]) {
+  // Borrar la entrada actual mientras se recorre un Map es seguro, así que no
+  // hace falta copiar antes las claves.
+  for (const clave of entradas.keys()) {
     if (prefijos.some((p) => clave.startsWith(p))) entradas.delete(clave)
   }
 }

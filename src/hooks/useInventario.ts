@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import type { Producto, Categoria } from '../types'
 
@@ -10,7 +11,7 @@ export function useInventario() {
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const channelName = useRef(`inventario-${Math.random().toString(36).slice(2)}`)
+  const channelName = useRef(nombreDeCanal('inventario'))
 
   const fetchData = useCallback(async () => {
     try {

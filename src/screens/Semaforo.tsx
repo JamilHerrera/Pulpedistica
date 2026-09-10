@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Package } from 'lucide-react'
+import { Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Package } from 'lucide-react'
 import { useSemaforo } from '../hooks/useSemaforo'
 import { etiquetaUmbral } from '../lib/semaforo'
 import type { GrupoRotacion, NivelRotacion, ProductoConRotacion } from '../hooks/useSemaforo'
@@ -65,7 +65,7 @@ const NIVEL_CONFIG: Record<NivelRotacion, {
 
 function ProductRow({
   producto, periodo, bar,
-}: { producto: ProductoConRotacion; periodo: 7 | 15 | 30; bar: string }) {
+}: Readonly<{ producto: ProductoConRotacion; periodo: 7 | 15 | 30; bar: string }>) {
   const unidades  = periodo === 7 ? producto.unidades7d : periodo === 15 ? producto.unidades15d : producto.unidades30d
   const stockMax  = Math.max(30, producto.stock_actual)
   const stockPct  = Math.min(100, (producto.stock_actual / stockMax) * 100)
@@ -116,7 +116,7 @@ function ProductRow({
 
 function GrupoCard({
   grupo, periodo, defaultOpen,
-}: { grupo: GrupoRotacion; periodo: 7 | 15 | 30; defaultOpen: boolean }) {
+}: Readonly<{ grupo: GrupoRotacion; periodo: 7 | 15 | 30; defaultOpen: boolean }>) {
   const [open, setOpen] = useState(defaultOpen)
   const cfg = NIVEL_CONFIG[grupo.nivel]
   const { Icon } = cfg

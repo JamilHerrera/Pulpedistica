@@ -43,8 +43,8 @@ export function useVenta() {
     }
 
     setCart((prev) => {
-      const existing = prev.find((i) => i.producto.id === producto.id)
-      if (existing) {
+      const yaEstaEnElCarrito = prev.some((i) => i.producto.id === producto.id)
+      if (yaEstaEnElCarrito) {
         return prev.map((i) =>
           i.producto.id === producto.id
             ? { ...i, cantidad: i.cantidad + 1 }

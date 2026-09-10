@@ -1,18 +1,15 @@
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import {
-  TrendingUp, ShoppingBag, BarChart2, RefreshCw, Calendar,
-  ClipboardCopy, Check, Package, ChevronDown, AlertTriangle,
-} from 'lucide-react'
+import { TrendingUp, ShoppingBag, BarChart2, Calendar, ClipboardCopy, Check, Package, ChevronDown, AlertTriangle } from 'lucide-react'
 import { useAnalisis } from '../hooks/useAnalisis'
 import { usePedidos } from '../hooks/usePedidos'
 import { SkeletonStats, SkeletonList } from '../components/ui/SkeletonCard'
 
 // ─── Tooltip del gráfico ───────────────────────────────────────────────────────
 
-function CustomTooltip({ active, payload, label }: {
+function CustomTooltip({ active, payload, label }: Readonly<{
   active?: boolean; payload?: Array<{ value: number }>; label?: string
-}) {
+}>) {
   if (!active || !payload?.length) return null
   return (
     <div className="glass-card px-3 py-2 text-xs border border-white/10">

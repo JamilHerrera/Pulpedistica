@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
 import type { Cliente, Fiado } from '../types'
@@ -10,7 +11,7 @@ export function useFiados() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const channelName = useRef(`fiados-${Math.random().toString(36).slice(2)}`)
+  const channelName = useRef(nombreDeCanal('fiados'))
 
   const fetchData = useCallback(async () => {
     try {

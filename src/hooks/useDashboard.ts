@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import type { DashboardStats, Venta } from '../types'
 
@@ -10,7 +11,7 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const channelName = useRef(`dashboard-${Math.random().toString(36).slice(2)}`)
+  const channelName = useRef(nombreDeCanal('dashboard'))
 
   const fetchStats = useCallback(async () => {
     try {
@@ -70,7 +71,7 @@ export function useDashboard() {
       const montoHoy = ventasHoy.reduce((s, v) => s + (v.monto_total ?? 0), 0)
       const productosStockBajo = productos.filter((p) => p.stock_actual <= STOCK_MIN).length
 
-      const ventasPorDia = Array(7).fill(0)
+      const ventasPorDia = new Array(7).fill(0)
       ventasSemana.forEach((v) => {
         const dia = new Date(v.fecha_hora)
         const diff = Math.floor((Date.now() - dia.getTime()) / 86400000)
