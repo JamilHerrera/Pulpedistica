@@ -1,6 +1,6 @@
 # 1. Uso de arquitectura de contenedores desacoplada para la gestión de inventario
 
-* **Estatus:** Aprobado
+* **Estatus:** Reemplazado por [ADR-3](0003-backend-como-servicio-en-lugar-de-api-propia.md)
 * **Fecha:** 2026-08-25
 
 ## Contexto
@@ -22,3 +22,9 @@ Adoptaremos una arquitectura basada en contenedores desacoplados (Nivel 2 de C4)
 ### Negativas
 * Añade la complejidad de gestionar latencia y comunicación mediante red (JSON/HTTPS) entre la SPA y la API.
 * Requiere mantener y desplegar de forma independiente múltiples entornos de ejecución.
+
+---
+
+> **Nota (2026-09-10):** esta decisión fue reemplazada. La API propia en Node.js / Express nunca se construyó: se optó por un backend como servicio.
+> El contenido se conserva tal como se aprobó, porque un ADR documenta lo que
+> se decidió en su momento; el cambio de rumbo se registra en el [ADR-3](0003-backend-como-servicio-en-lugar-de-api-propia.md).

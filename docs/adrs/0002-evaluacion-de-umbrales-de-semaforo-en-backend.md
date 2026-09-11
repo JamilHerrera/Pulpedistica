@@ -1,6 +1,6 @@
 # 2. Evaluación de umbrales del semáforo en el servidor backend
 
-* **Estatus:** Aprobado
+* **Estatus:** Reemplazado por [ADR-3](0003-backend-como-servicio-en-lugar-de-api-propia.md)
 * **Fecha:** 2026-08-25
 
 ## Contexto
@@ -18,3 +18,9 @@ Decidimos trasladar y ejecutar el 100% de la evaluación de umbrales del semáfo
 
 ### Negativas
 * Incrementa ligeramente la carga de procesamiento en la CPU del backend al calcular los estados en cada respuesta de inventario.
+
+---
+
+> **Nota (2026-09-10):** esta decisión fue reemplazada. El semáforo se evalúa en el cliente, dentro de un módulo propio, no en una API.
+> El contenido se conserva tal como se aprobó, porque un ADR documenta lo que
+> se decidió en su momento; el cambio de rumbo se registra en el [ADR-3](0003-backend-como-servicio-en-lugar-de-api-propia.md).
