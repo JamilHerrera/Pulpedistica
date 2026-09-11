@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Search, Plus, Package, Check, X, ChevronDown, Tag, Info } from 'lucide-react'
 import { useInventario } from '../hooks/useInventario'
+import { usePerfil } from '../hooks/usePerfil'
 import { SkeletonList } from '../components/ui/SkeletonCard'
 import type { Producto } from '../types'
 
@@ -279,6 +280,8 @@ function AddProductModal({
 
 export function Inventario({ onToast }: Readonly<Props>) {
   const { productos, categorias, loading, error, updatingId, actualizarStock, agregarProducto, agregarCategoria, refetch } = useInventario()
+  // Editar el catalogo es del admin: las politicas lo exigen del lado del servidor.
+  const { esAdmin } = usePerfil()
   const [query, setQuery] = useState('')
   const [catFilter, setCatFilter] = useState<string>('todos')
   const [soloAlertas, setSoloAlertas] = useState(false)
@@ -303,12 +306,14 @@ export function Inventario({ onToast }: Readonly<Props>) {
           <h2 className="text-xl sm:text-2xl font-bold text-white">Inventario</h2>
           <p className="text-white/40 text-sm mt-0.5">{productos.length} productos totales</p>
         </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl active:scale-95 transition-all shadow-glow-brand"
-        >
-          <Plus size={16} strokeWidth={2.5} /> Agregar
-        </button>
+        {esAdmin && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl active:scale-95 transition-all shadow-glow-brand"
+          >
+            <Plus size={16} strokeWidth={2.5} /> Agregar
+          </button>
+        )}
       </div>
 
       {/* Buscador */}

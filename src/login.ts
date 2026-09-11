@@ -9,6 +9,8 @@ const email       = document.getElementById('email')          as HTMLInputElemen
 const password    = document.getElementById('password')       as HTMLInputElement
 const negocio     = document.getElementById('negocio')        as HTMLInputElement
 const campoNegocio= document.getElementById('campo-negocio')  as HTMLDivElement
+const invitacion  = document.getElementById('invitacion')     as HTMLInputElement
+const campoInvit  = document.getElementById('campo-invitacion') as HTMLDivElement
 const ayudaPass   = document.getElementById('ayuda-password') as HTMLParagraphElement
 const submit      = document.getElementById('login-submit')   as HTMLButtonElement
 const errorBox    = document.getElementById('login-error')    as HTMLParagraphElement
@@ -69,6 +71,7 @@ function cambiarModo(nuevo: Modo) {
 
   const registrando = modo === 'registro'
   campoNegocio.hidden = !registrando
+  campoInvit.hidden = !registrando
   ayudaPass.hidden = !registrando
   negocio.required = registrando
   password.autocomplete = registrando ? 'new-password' : 'current-password'
@@ -119,7 +122,14 @@ form.addEventListener('submit', async (e) => {
     const { data, error } = await supabase.auth.signUp({
       email: email.value,
       password: password.value,
-      options: { data: { negocio: negocio.value.trim() } },
+      options: {
+        data: {
+          negocio: negocio.value.trim(),
+          // Si trae codigo, el disparador lo suma a ESE negocio con el rol que
+          // definio quien invito, en vez de crearle uno propio.
+          invitacion: invitacion.value.trim().toUpperCase(),
+        },
+      },
     })
 
     if (error) {

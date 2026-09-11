@@ -7,6 +7,11 @@ import { NuevaVenta } from './screens/NuevaVenta'
 import { Fiados } from './screens/Fiados'
 import { Inventario } from './screens/Inventario'
 import { Analisis } from './screens/Analisis'
+import { Comentarios } from './screens/Comentarios'
+import { Usuarios } from './screens/Usuarios'
+import { EnviarComentario } from './components/ui/EnviarComentario'
+import { usePerfil } from './hooks/usePerfil'
+import { useFeedback } from './hooks/useFeedback'
 import { supabase } from './lib/supabase'
 import { migrarPreciosLocales } from './lib/migrarPrecios'
 import { limpiarCache } from './lib/cache'
@@ -14,7 +19,7 @@ import type { Screen, ToastMessage, ToastType } from './types'
 
 let toastCounter = 0
 
-const PANTALLAS: Screen[] = ['dashboard', 'semaforo', 'venta', 'fiados', 'inventario', 'analisis']
+const PANTALLAS: Screen[] = ['dashboard', 'semaforo', 'venta', 'fiados', 'inventario', 'analisis', 'usuarios', 'comentarios']
 
 /**
  * Pantalla inicial según `?pantalla=` de la URL.
@@ -30,6 +35,9 @@ function pantallaInicial(): Screen {
 
 export default function AdminApp() {
   const [screen, setScreen] = useState<Screen>(pantallaInicial)
+  const { esAdmin, esSoporte } = usePerfil()
+  const { enviar } = useFeedback()
+  const [comentando, setComentando] = useState(false)
 
   // Sube por única vez los precios que hayan quedado en este navegador.
   useEffect(() => { migrarPreciosLocales() }, [])
@@ -65,12 +73,17 @@ export default function AdminApp() {
     fiados:    <Fiados onToast={addToast} />,
     inventario:<Inventario onToast={addToast} />,
     analisis:  <Analisis />,
+    usuarios:  <Usuarios onToast={addToast} />,
+    comentarios: <Comentarios onToast={addToast} />,
   }
 
   return (
     <AppShell
       active={screen}
       onChange={irA}
+      esAdmin={esAdmin}
+      esSoporte={esSoporte}
+      onComentar={() => setComentando(true)}
       onSignOut={() => {
         // Sin esto, la siguiente sesion veria datos cacheados de la anterior.
         limpiarCache()
@@ -82,6 +95,19 @@ export default function AdminApp() {
       <div key={screen} className="animate-fade-in">
         {screens[screen]}
       </div>
+
+      {comentando && (
+        <EnviarComentario
+          pantalla={screen}
+          onClose={() => setComentando(false)}
+          onEnviar={async (tipo, mensaje, calificacion, pantalla) => {
+            const ok = await enviar(tipo, mensaje, calificacion, pantalla)
+            if (ok) addToast('¡Gracias!', 'Tu comentario fue enviado', 'success')
+            else addToast('No se pudo enviar', 'Revisá tu conexión', 'error')
+            return ok
+          }}
+        />
+      )}
     </AppShell>
   )
 }

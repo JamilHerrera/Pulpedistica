@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Home, TrendingUp, ShoppingCart, HandCoins, Package, BarChart2, LogOut } from 'lucide-react'
+import { Home, TrendingUp, ShoppingCart, HandCoins, Package, BarChart2, MessageSquare, Users, LogOut } from 'lucide-react'
 import type { Screen } from '../../types'
 
 interface NavItem {
@@ -8,6 +8,10 @@ interface NavItem {
   label: string
   /** Etiqueta corta para la barra inferior en móvil. */
   labelMovil: string
+  /** Secciones que solo tienen sentido para quien administra el negocio. */
+  soloAdmin?: boolean
+  /** Secciones de quien mantiene el producto, no del negocio. */
+  soloSoporte?: boolean
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -16,7 +20,9 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'venta',      icon: ShoppingCart, label: 'Nueva venta', labelMovil: 'Venta'    },
   { id: 'fiados',     icon: HandCoins,    label: 'Fiados',      labelMovil: 'Fiados'   },
   { id: 'inventario', icon: Package,      label: 'Inventario',  labelMovil: 'Stock'    },
-  { id: 'analisis',   icon: BarChart2,    label: 'Análisis',    labelMovil: 'Análisis' },
+  { id: 'analisis',   icon: BarChart2,    label: 'Análisis',    labelMovil: 'Análisis', soloAdmin: true },
+  { id: 'usuarios',   icon: Users,        label: 'Usuarios',    labelMovil: 'Usuarios', soloAdmin: true },
+  { id: 'comentarios', icon: MessageSquare, label: 'Comentarios', labelMovil: 'Opiniones', soloSoporte: true },
 ]
 
 const TITLES: Record<Screen, string> = {
@@ -26,16 +32,29 @@ const TITLES: Record<Screen, string> = {
   fiados:     'Fiados',
   inventario: 'Inventario',
   analisis:   'Análisis',
+  usuarios:   'Usuarios del negocio',
+  comentarios:'Comentarios de los usuarios',
 }
 
 interface Props {
   active: Screen
   onChange: (s: Screen) => void
   onSignOut: () => void
+  onComentar: () => void
+  esAdmin: boolean
+  esSoporte: boolean
   children: ReactNode
 }
 
-export function AppShell({ active, onChange, onSignOut, children }: Readonly<Props>) {
+export function AppShell({
+  active, onChange, onSignOut, onComentar, esAdmin, esSoporte, children,
+}: Readonly<Props>) {
+  // No se muestra lo que la base va a rechazar igual: las politicas son la
+  // seguridad, esto es solo no ofrecer un callejon sin salida.
+  const navVisible = NAV_ITEMS.filter(
+    (i) => (!i.soloAdmin || esAdmin) && (!i.soloSoporte || esSoporte),
+  )
+
   const today = new Date().toLocaleDateString('es-HN', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
@@ -49,7 +68,7 @@ export function AppShell({ active, onChange, onSignOut, children }: Readonly<Pro
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_ITEMS.map(({ id, icon: Icon, label }) => {
+          {navVisible.map(({ id, icon: Icon, label }) => {
             const isActive = active === id
             return (
               <button
@@ -88,6 +107,14 @@ export function AppShell({ active, onChange, onSignOut, children }: Readonly<Pro
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={onComentar}
+              title="Enviar un comentario"
+              className="flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/[0.08] px-3 py-2 text-white/60 text-xs font-medium hover:bg-white/10 active:scale-95 transition-all"
+            >
+              <MessageSquare size={14} />
+              <span className="hidden sm:inline">Comentar</span>
+            </button>
             <span className="lg:hidden font-black text-sm tracking-tight">PulpeAnálisis ✦</span>
             <button
               onClick={onSignOut}
@@ -107,7 +134,7 @@ export function AppShell({ active, onChange, onSignOut, children }: Readonly<Pro
       {/* ── Nav inferior (solo móvil) ─────────────────────────────────── */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/[0.06] bg-surface/95 backdrop-blur-xl safe-bottom">
         <div className="flex items-center justify-around px-0.5 py-1.5">
-          {NAV_ITEMS.map(({ id, icon: Icon, labelMovil }) => {
+          {navVisible.map(({ id, icon: Icon, labelMovil }) => {
             const isActive = active === id
             return (
               <button

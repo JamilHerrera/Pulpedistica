@@ -3,6 +3,7 @@ import {
   Plus, X, HandCoins, Check, RotateCcw, Trash2, UserPlus, Users, AlertTriangle, Phone,
 } from 'lucide-react'
 import { useFiados } from '../hooks/useFiados'
+import { usePerfil } from '../hooks/usePerfil'
 import { SkeletonList } from '../components/ui/SkeletonCard'
 import type { Cliente, Fiado } from '../types'
 
@@ -202,9 +203,10 @@ function NuevoFiadoModal({
 // ─── Tarjeta de un fiado ─────────────────────────────────────────────────────
 
 function FiadoCard({
-  fiado, onTogglePagado, onEliminar,
+  fiado, esAdmin, onTogglePagado, onEliminar,
 }: Readonly<{
   fiado: Fiado
+  esAdmin: boolean
   onTogglePagado: (f: Fiado) => void
   onEliminar: (f: Fiado) => void
 }>) {
@@ -254,6 +256,7 @@ function FiadoCard({
         >
           {fiado.pagado ? <RotateCcw size={14} /> : <Check size={15} strokeWidth={2.5} />}
         </button>
+        {esAdmin && (
         <button
           onClick={() => onEliminar(fiado)}
           title="Eliminar fiado"
@@ -261,6 +264,7 @@ function FiadoCard({
         >
           <Trash2 size={13} />
         </button>
+        )}
       </div>
     </div>
   )
@@ -274,6 +278,8 @@ export function Fiados({ onToast }: Readonly<Props>) {
     totalAdeudado, clientesConDeuda, pendientesCount,
     crearCliente, registrarFiado, marcarPagado, eliminarFiado,
   } = useFiados()
+  // Borrar un fiado hace desaparecer el registro: solo el admin.
+  const { esAdmin } = usePerfil()
 
   const [filtro, setFiltro] = useState<Filtro>('pendientes')
   const [showNuevo, setShowNuevo] = useState(false)
@@ -387,6 +393,7 @@ export function Fiados({ onToast }: Readonly<Props>) {
             <FiadoCard
               key={f.id}
               fiado={f}
+              esAdmin={esAdmin}
               onTogglePagado={handleToggle}
               onEliminar={setPorEliminar}
             />

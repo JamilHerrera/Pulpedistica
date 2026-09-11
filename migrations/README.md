@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -37,6 +37,8 @@ order by version;
 | 008 | `008_idempotencia.sql` | Claves de idempotencia en `ventas` y `fiados` |
 | 009 | `009_operaciones_transaccionales.sql` | `registrar_venta` y `anular_venta`: atómicas e idempotentes |
 | 010 | `010_multi_negocio.sql` | Cada pulpería ve solo sus datos; alta automática al registrarse |
+| 011 | `011_retroalimentacion.sql` | Comentarios de los usuarios, visibles para soporte |
+| 012 | `012_roles_y_invitaciones.sql` | Roles admin/empleado dentro del negocio, con invitaciones |
 
 ## Notas
 
@@ -48,3 +50,7 @@ order by version;
   aplicarse.
 - Para volcar el esquema real a `docs/db-export.json`, usar
   `docs/export-schema.sql`.
+- **Cuidado con dos nombres parecidos.** `perfiles.rol` (`admin`/`empleado`)
+  define qué puede hacer alguien **dentro de su pulpería**.
+  `perfiles.es_soporte` es otra cosa: quien mantiene la aplicación y lee los
+  comentarios de todos los negocios.

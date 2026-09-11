@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useDashboard } from '../hooks/useDashboard'
 import { useEstancados } from '../hooks/useEstancados'
+import { usePerfil } from '../hooks/usePerfil'
 import { SkeletonStats, SkeletonList } from '../components/ui/SkeletonCard'
 import type { Screen, Venta } from '../types'
 import type { ProductoEstancado } from '../hooks/useEstancados'
@@ -308,6 +309,8 @@ function MiniBarChart({ values }: Readonly<{ values: number[] }>) {
 
 export function Dashboard({ onNavigate, onToast }: Readonly<Props>) {
   const { stats, loading, error, refetch, anularVenta } = useDashboard()
+  // La base rechaza la anulacion si no es admin; esto solo evita ofrecerla.
+  const { esAdmin } = usePerfil()
   const { estancados } = useEstancados()
   const [ventaParaAnular,  setVentaParaAnular]  = useState<Venta | null>(null)
   const [ventaDetalle,     setVentaDetalle]     = useState<Venta | null>(null)
@@ -495,7 +498,7 @@ export function Dashboard({ onNavigate, onToast }: Readonly<Props>) {
               <div className="flex flex-col gap-2">
                 {stats.ventasRecientes.map((v, i) => {
                   const esAnulada = v.anulada === true
-                  const esMasReciente = i === 0 && !esAnulada
+                  const esMasReciente = i === 0 && !esAnulada && esAdmin
                   return (
                     <div
                       key={v.id}

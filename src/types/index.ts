@@ -56,7 +56,23 @@ export interface Fiado {
   clientes?: Cliente
 }
 
-export type Screen = 'dashboard' | 'semaforo' | 'venta' | 'fiados' | 'inventario' | 'analisis'
+export type TipoFeedback = 'sugerencia' | 'problema' | 'elogio' | 'otro'
+
+export interface Feedback {
+  id: string
+  user_id: string | null
+  negocio_id: string | null
+  tipo: TipoFeedback
+  /** Nota de 1 a 5. Es opcional: hay comentarios que no vienen con puntaje. */
+  calificacion: number | null
+  mensaje: string
+  /** Sección desde la que se envió, para ubicar el comentario en contexto. */
+  pantalla: string | null
+  atendido: boolean
+  created_at: string
+}
+
+export type Screen = 'dashboard' | 'semaforo' | 'venta' | 'fiados' | 'inventario' | 'analisis' | 'comentarios' | 'usuarios'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
