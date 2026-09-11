@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Package } from 'lucide-react'
+import { RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useSemaforo } from '../hooks/useSemaforo'
 import { etiquetaUmbral } from '../lib/semaforo'
 import type { GrupoRotacion, NivelRotacion, ProductoConRotacion } from '../hooks/useSemaforo'
@@ -64,8 +64,8 @@ const NIVEL_CONFIG: Record<NivelRotacion, {
 // ─── Fila de producto ──────────────────────────────────────────────────────────
 
 function ProductRow({
-  producto, periodo, bar,
-}: Readonly<{ producto: ProductoConRotacion; periodo: 7 | 15 | 30; bar: string }>) {
+  producto, periodo,
+}: Readonly<{ producto: ProductoConRotacion; periodo: 7 | 15 | 30 }>) {
   const unidades  = periodo === 7 ? producto.unidades7d : periodo === 15 ? producto.unidades15d : producto.unidades30d
   const stockMax  = Math.max(30, producto.stock_actual)
   const stockPct  = Math.min(100, (producto.stock_actual / stockMax) * 100)
@@ -165,7 +165,7 @@ function GrupoCard({
       {open && !empty && (
         <div className={`px-4 pb-3 ${cfg.bg} border-t border-white/[0.04]`}>
           {grupo.productos.map((p) => (
-            <ProductRow key={p.id} producto={p} periodo={periodo} bar={cfg.bar} />
+            <ProductRow key={p.id} producto={p} periodo={periodo} />
           ))}
         </div>
       )}

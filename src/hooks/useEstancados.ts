@@ -26,7 +26,7 @@ export function useEstancados() {
       const desde30d = new Date(hoy.getTime() - 30 * 86_400_000).toISOString()
 
       // 1. Todos los productos con stock > 0
-      const prodRes = await consultaCacheada('estancados:productos', () => supabase
+      const prodRes = await consultaCacheada('estancados:productos', async () => await supabase
         .from('productos')
         .select('id, nombre, stock_actual, categoria_id, categorias(id, nombre)')
         .gt('stock_actual', 0)

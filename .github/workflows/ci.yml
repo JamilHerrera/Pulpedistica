@@ -32,8 +32,11 @@ jobs:
 
       # Cada paso es independiente para que el error diga qué se rompió, en
       # vez de un único "build failed" sin pistas.
+      # `tsc --noEmit` sobre el tsconfig raiz no revisaba NADA: ese archivo
+      # declara "files": [] y solo referencia a otros proyectos, asi que hay
+      # que usar modo build (-b) para que los recorra de verdad.
       - name: Verificar tipos
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Ejecutar pruebas con cobertura
         run: npm run test:coverage

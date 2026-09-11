@@ -118,7 +118,7 @@ export function useVenta() {
   // Top products by frequency in detalle_ventas (client-side aggregation)
   const getProductosFrecuentes = useCallback(async (): Promise<Producto[]> => {
     try {
-      const { data, error } = await consultaCacheada('venta:frecuentes', () => supabase
+      const { data, error } = await consultaCacheada('venta:frecuentes', async () => await supabase
         .from('detalle_ventas')
         .select('producto_id, cantidad, productos(id, nombre, stock_actual, categoria_id, categorias(id, nombre, color_semaforo))')
         .limit(500), TTL.medio)
