@@ -38,6 +38,11 @@ jobs:
       - name: Verificar tipos
         run: npm run typecheck
 
+      # Los tests se verifican aparte porque necesitan los tipos de vitest,
+      # que el build de produccion no deberia requerir.
+      - name: Verificar tipos de las pruebas
+        run: npm run typecheck:test
+
       - name: Ejecutar pruebas con cobertura
         run: npm run test:coverage
 

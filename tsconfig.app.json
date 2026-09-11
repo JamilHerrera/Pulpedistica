@@ -21,5 +21,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Los tests se verifican aparte (tsconfig.test.json): asi el build de
+  // produccion no depende de los tipos de vitest, que es una dependencia
+  // de desarrollo y puede no estar instalada en el entorno de despliegue.
+  "exclude": ["src/**/*.test.ts"]
 }

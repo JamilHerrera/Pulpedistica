@@ -1,0 +1,13 @@
+{
+  // Verificacion de tipos de las pruebas. Separado del build de produccion
+  // porque necesita los tipos de vitest, que es dependencia de desarrollo.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    // vite/client aporta import.meta.env; sin repetirlo se pierde al
+    // redefinir "types".
+    "types": ["vite/client", "vitest/globals"],
+    "noEmit": true
+  },
+  "include": ["src"],
+  "exclude": []
+}
