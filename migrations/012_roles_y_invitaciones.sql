@@ -115,6 +115,8 @@ drop policy if exists clientes_de_mi_negocio on public.clientes;
 drop policy if exists fiados_de_mi_negocio   on public.fiados;
 drop policy if exists clientes_del_negocio   on public.clientes;
 drop policy if exists fiados_del_negocio     on public.fiados;
+drop policy if exists fiados_insertar        on public.fiados;
+drop policy if exists fiados_actualizar      on public.fiados;
 drop policy if exists fiados_admin_borra     on public.fiados;
 
 create policy clientes_del_negocio on public.clientes
