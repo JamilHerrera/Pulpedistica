@@ -77,6 +77,11 @@ begin
   end if;
 end $$;
 
+-- Deja registrado desde que negocio se envio, sin que la app tenga que
+-- mandarlo. Es contexto util para quien lee los comentarios.
+alter table public.feedback
+  alter column negocio_id set default public.mi_negocio();
+
 create index if not exists idx_feedback_reciente  on public.feedback(created_at desc);
 create index if not exists idx_feedback_pendiente on public.feedback(atendido, created_at desc);
 create index if not exists idx_feedback_autor     on public.feedback(user_id);

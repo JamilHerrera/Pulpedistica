@@ -159,6 +159,12 @@ begin
   end if;
 end $$;
 
+-- Sin este default la columna llega NULL desde la app, la politica compara
+-- NULL = mi_negocio() —que no es verdadero— y rechaza la insercion. Mismo
+-- patron que el resto de las tablas del negocio.
+alter table public.invitaciones
+  alter column negocio_id set default public.mi_negocio();
+
 create index if not exists idx_invitaciones_negocio on public.invitaciones(negocio_id);
 
 alter table public.invitaciones enable row level security;
