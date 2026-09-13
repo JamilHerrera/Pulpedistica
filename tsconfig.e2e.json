@@ -1,0 +1,13 @@
+{
+  // Verificacion de tipos de las pruebas de extremo a extremo. Aparte de las
+  // de Vitest porque corren en Node —leen el .env, hablan con la API— y no en
+  // el navegador, asi que necesitan otros tipos.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"],
+    "noEmit": true
+  },
+  "include": ["e2e", "playwright.config.ts"],
+  "exclude": []
+}

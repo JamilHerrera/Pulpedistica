@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
-import { reportarError } from '../../lib/tickets'
+import { reportarError, reclamarError } from '../../lib/tickets'
 
 /**
  * Atrapa los errores que ocurren al dibujar la interfaz.
@@ -28,7 +28,12 @@ interface State {
 export class BarreraDeError extends Component<Props, State> {
   state: State = { fallo: false, codigo: null }
 
-  static getDerivedStateFromError(): Partial<State> {
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    // Se reclama acá y no en componentDidCatch porque React corre esto
+    // primero. React relanza el error a window.onerror, y aquel reporte va
+    // diferido un turno esperando justamente esta marca: sin ella el crash
+    // dejaría dos tickets, y el peor de los dos ganaría.
+    reclamarError(error)
     return { fallo: true }
   }
 

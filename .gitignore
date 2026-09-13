@@ -32,3 +32,9 @@ dist-ssr
 # Reporte HTML de cobertura: se versionan solo los datos
 # (coverage-summary.json y lcov.info), no los cientos de archivos del visor.
 coverage/lcov-report/
+
+# Playwright: resultados, trazas y reporte HTML de cada corrida.
+test-results/
+playwright-report/
+blob-report/
+.playwright/

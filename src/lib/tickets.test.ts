@@ -32,6 +32,13 @@ let escuchas: Record<string, ((e: unknown) => void)[]>
 
 /** Deja el módulo recién cargado, sin el estado de la prueba anterior. */
 async function cargarModulo(online = true) {
+  // Primero se deja terminar lo que quedó volando de la prueba anterior.
+  // `reportarError` no espera al envío —a propósito, la app no debe esperar a
+  // que se cree un ticket— así que al salir de una prueba pueden quedar
+  // promesas a medias. Si resolvieran después de recargar el módulo caerían
+  // en el almacenamiento de ESTA prueba y le meterían tickets ajenos.
+  await new Promise((r) => setTimeout(r, 20))
+
   vi.resetModules()
   rpc.mockReset()
   rpc.mockResolvedValue({ data: 'id-falso', error: null })
@@ -113,7 +120,9 @@ describe('reportarError', () => {
   })
 
   it('nunca lanza, por más raro que sea lo que le pasen', async () => {
-    const { reportarError } = await cargarModulo()
+    // Sin conexión a propósito: así los reportes van a la cola y no dejan
+    // envíos volando, que resolverían durante la prueba siguiente.
+    const { reportarError } = await cargarModulo(false)
     const circular: Record<string, unknown> = {}
     circular.yo = circular
     for (const valor of [null, undefined, 0, circular, Symbol('x')]) {
@@ -247,6 +256,35 @@ describe('instalarCapturaDeErrores', () => {
     expect(rpc).toHaveBeenCalledWith('reportar_error', expect.objectContaining({
       p_origen: 'recurso',
       p_titulo: 'No cargó script: https://ejemplo.hn/app.js',
+    }))
+  })
+
+  // React relanza a la ventana los errores que una barrera ya atrapó, y lo
+  // hace dos veces en desarrollo. Sin este descarte, cada pantalla rota
+  // dejaría un ticket de más, y el pelado —sin árbol de componentes— podía
+  // ganarle al bueno.
+  it('no reporta por la ventana lo que una barrera ya reclamó', async () => {
+    const { instalarCapturaDeErrores, reclamarError } = await cargarModulo()
+    instalarCapturaDeErrores()
+
+    const error = new Error('reventó al dibujar el inventario')
+    reclamarError(error)
+    escuchas.error[0]({ error, target: undefined })
+    await dejarCorrer()
+
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('reclamar un error no silencia a los demás', async () => {
+    const { instalarCapturaDeErrores, reclamarError } = await cargarModulo()
+    instalarCapturaDeErrores()
+
+    reclamarError(new Error('el que atrapó la barrera'))
+    escuchas.error[0]({ error: new Error('otro fallo distinto'), target: undefined })
+    await dejarCorrer()
+
+    expect(rpc).toHaveBeenCalledWith('reportar_error', expect.objectContaining({
+      p_titulo: 'otro fallo distinto',
     }))
   })
 

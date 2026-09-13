@@ -100,6 +100,9 @@ describe('esRuido', () => {
     'Error en chrome-extension://abcdef/inject.js',
     'TypeError: Failed to fetch',
     'Script error.',
+    // React avisa esto por consola cuando una barrera atrapa un error. La
+    // barrera ya abrió el ticket bueno: este solo lo duplicaría.
+    'The above error occurred in the <Inventario> component:',
   ])('descarta el ruido conocido: %s', (mensaje) => {
     expect(esRuido(mensaje)).toBe(true)
   })

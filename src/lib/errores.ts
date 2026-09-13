@@ -143,6 +143,10 @@ const RUIDO = [
   'failed to fetch',
   'networkerror when attempting to fetch',
   'load failed',
+  // El propio aviso de React cuando una barrera atrapa un error. La barrera
+  // ya abrió el ticket bueno, con el árbol de componentes; esto solo lo
+  // duplicaría. Ocurre también en producción, no solo en desarrollo.
+  'the above error occurred in the',
   // Guiones de terceros que el navegador no deja inspeccionar.
   'script error',
   'non-error promise rejection captured with value: undefined',

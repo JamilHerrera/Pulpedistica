@@ -15,7 +15,7 @@
  */
 
 import {
-  prepararTicket, codigoLegible, describir,
+  prepararTicket, codigoLegible, describir, normalizarMensaje,
   type OrigenError, type ErrorNormalizado,
 } from './errores'
 
@@ -39,16 +39,59 @@ const COLA_MAX = 20
 let reportando = false
 
 /**
- * Lo mismo, pero para el tramo asíncrono.
+ * Envíos esperando respuesta.
  *
  * `reportando` solo cubre la parte síncrona: se apaga en cuanto el envío sale
  * en camino. El bucle peligroso vive justo después, mientras se espera la
  * respuesta, porque el cliente de Supabase escribe en la consola cuando la
- * petición falla, y esa consola está parcheada. Mientras haya un envío en
- * vuelo no se acepta ningún reporte nuevo; se pierde algún error que ocurra
- * en esos milisegundos, a cambio de que sea imposible entrar en recursión.
+ * petición falla, y esa consola está parcheada.
+ *
+ * Por eso este contador frena ÚNICAMENTE al parche de la consola, que es el
+ * único vector de recursión que existe. La primera versión frenaba todos los
+ * reportes, y eso se tragaba el de la barrera de React: un crash de render
+ * llega dos veces —React lo relanza a la ventana y además se lo pasa a la
+ * barrera— y el segundo, que es el que trae el árbol de componentes, caía
+ * justo dentro de la ventana del primero. Lo encontró una prueba de navegador.
  */
 let enviosEnVuelo = 0
+
+/**
+ * Errores que una barrera de React ya reclamó para sí.
+ *
+ * React vuelve a lanzar a `window.onerror` los errores que una barrera atrapó,
+ * así que el mismo crash dejaría dos tickets: uno pelado y otro con el árbol
+ * de componentes. La barrera marca acá el error y el reporte de la ventana,
+ * que va diferido un turno, se hace a un lado.
+ *
+ * Se indexa por MENSAJE y no por identidad del objeto, aunque un WeakSet sería
+ * más elegante: en desarrollo React relanza el mismo fallo dos veces y no
+ * siempre con el mismo objeto `Error`, así que la identidad deja pasar una de
+ * las dos. Con el mensaje normalizado caen las dos. Lo encontró una prueba de
+ * navegador; la versión anterior dejaba un ticket duplicado por cada crash.
+ */
+const reclamadosPorBarrera = new Map<string, number>()
+
+/** Cuánto vale un reclamo. Alcanza de sobra: React relanza en el mismo turno. */
+const RECLAMO_VALE_MS = 5_000
+
+function claveDeReclamo(valor: unknown): string {
+  return normalizarMensaje(describir(valor))
+}
+
+/** La llama la barrera de React, antes de reportar ella misma. */
+export function reclamarError(valor: unknown) {
+  const ahora = Date.now()
+  // Se poda al escribir: sin esto el mapa crecería toda la sesión.
+  for (const [clave, cuando] of reclamadosPorBarrera) {
+    if (ahora - cuando > RECLAMO_VALE_MS) reclamadosPorBarrera.delete(clave)
+  }
+  reclamadosPorBarrera.set(claveDeReclamo(valor), ahora)
+}
+
+function loReclamoUnaBarrera(valor: unknown): boolean {
+  const cuando = reclamadosPorBarrera.get(claveDeReclamo(valor))
+  return cuando !== undefined && Date.now() - cuando <= RECLAMO_VALE_MS
+}
 
 /** Huellas ya mandadas en esta sesión, con cuándo, para no repetir. */
 const yaReportado = new Map<string, number>()
@@ -194,7 +237,7 @@ export function reportarError(
   origen: OrigenError = 'javascript',
   contexto?: string,
 ): string | null {
-  if (reportando || enviosEnVuelo > 0) return null
+  if (reportando) return null
 
   try {
     reportando = true
@@ -252,7 +295,16 @@ export function instalarCapturaDeErrores() {
         reportarError(`No cargó ${el.tagName.toLowerCase()}: ${url}`, 'recurso')
         return
       }
-      reportarError(evento.error ?? evento.message, 'javascript')
+
+      // Se difiere un turno a propósito. React relanza acá los errores de
+      // render que una barrera ya atrapó, y la barrera los reporta mucho
+      // mejor: con el árbol de componentes. Esperar deja que ella los
+      // reclame; si nadie lo hace, este era un error suelto de verdad.
+      const error = evento.error ?? evento.message
+      setTimeout(() => {
+        if (loReclamoUnaBarrera(error)) return
+        reportarError(error, 'javascript')
+      }, 0)
     },
     true,
   )
@@ -273,6 +325,10 @@ export function instalarCapturaDeErrores() {
   const originalError = console.error.bind(console)
   console.error = (...args: unknown[]) => {
     originalError(...args)
+    // Mientras se está mandando un ticket, lo que aparezca en la consola bien
+    // puede ser el propio envío quejándose de la red. Reportarlo sería
+    // recursión, así que en esa ventana la consola solo imprime.
+    if (enviosEnVuelo > 0) return
     // El primer argumento que sea un Error de verdad manda, porque trae la
     // traza; si no hay ninguno, se arma el mensaje con todo lo que llegó.
     const conTraza = args.find((a) => a instanceof Error)
