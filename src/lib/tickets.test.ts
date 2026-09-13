@@ -275,6 +275,28 @@ describe('instalarCapturaDeErrores', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
+  // El mismo descarte hace falta en la consola, no solo en la ventana: en el
+  // build de producción React registra por consola el error que la barrera ya
+  // atrapó, sin el texto reconocible que sí pone en desarrollo.
+  it('tampoco reporta por la consola lo que una barrera ya reclamó', async () => {
+    const { instalarCapturaDeErrores, reclamarError } = await cargarModulo()
+    const original = console.error
+    try {
+      console.error = vi.fn()
+      instalarCapturaDeErrores()
+
+      const error = new Error('reventó al dibujar el inventario')
+      reclamarError(error)
+      console.error(error)
+      await dejarCorrer()
+      await dejarCorrer()
+
+      expect(rpc).not.toHaveBeenCalled()
+    } finally {
+      console.error = original
+    }
+  })
+
   it('reclamar un error no silencia a los demás', async () => {
     const { instalarCapturaDeErrores, reclamarError } = await cargarModulo()
     instalarCapturaDeErrores()

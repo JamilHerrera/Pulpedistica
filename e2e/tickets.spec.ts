@@ -188,7 +188,7 @@ test.describe('la pantalla en blanco', () => {
         contentType: 'application/json',
         body: JSON.stringify([{
           id: '00000000-0000-4000-8000-000000000001',
-          nombre: { [MARCA]: 'nombre corrupto' },
+          nombre: { [`${MARCA}_RENDER`]: 'nombre corrupto' },
           stock_actual: 5,
           precio: 10,
           categoria_id: null,
@@ -203,7 +203,7 @@ test.describe('la pantalla en blanco', () => {
     // Y el menú sigue vivo: puede irse a otra sección.
     await expect(page.locator('aside').getByRole('button', { name: 'Inicio' })).toBeVisible()
 
-    const ticket = await esperarTicket(MARCA)
+    const ticket = await esperarTicket(`${MARCA}_RENDER`)
     expect(ticket).not.toBeNull()
     expect(ticket?.origen).toBe('render')
     // La traza incluye el árbol de componentes, que es lo primero que hace
@@ -220,7 +220,7 @@ test.describe('la pantalla en blanco', () => {
         contentType: 'application/json',
         body: JSON.stringify([{
           id: '00000000-0000-4000-8000-000000000002',
-          nombre: { [MARCA]: 'otro nombre corrupto' },
+          nombre: { [`${MARCA}_REARME`]: 'otro nombre corrupto' },
           stock_actual: 1,
           precio: 1,
           categoria_id: null,

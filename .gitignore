@@ -38,3 +38,6 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+
+# Sesion de navegador manejada por el asistente (no es codigo del proyecto).
+.navegador/

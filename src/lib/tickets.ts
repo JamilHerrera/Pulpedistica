@@ -327,12 +327,28 @@ export function instalarCapturaDeErrores() {
     originalError(...args)
     // Mientras se está mandando un ticket, lo que aparezca en la consola bien
     // puede ser el propio envío quejándose de la red. Reportarlo sería
-    // recursión, así que en esa ventana la consola solo imprime.
+    // recursión, así que en esa ventana la consola solo imprime. Este control
+    // va acá y no en el reporte diferido: la recursión ocurre AHORA.
     if (enviosEnVuelo > 0) return
+
     // El primer argumento que sea un Error de verdad manda, porque trae la
     // traza; si no hay ninguno, se arma el mensaje con todo lo que llegó.
     const conTraza = args.find((a) => a instanceof Error)
-    reportarError(conTraza ?? args.map(describir).join(' '), 'consola')
+    const valor = conTraza ?? args.map(describir).join(' ')
+
+    // Se difiere igual que el reporte de la ventana, y por lo mismo: React
+    // registra por consola los errores que una barrera ya atrapó, y la
+    // barrera los reporta con el árbol de componentes.
+    //
+    // En desarrollo ese aviso es reconocible por su texto ("The above error
+    // occurred in…") y lo descarta el filtro de ruido. En PRODUCCIÓN React
+    // registra el error pelado, sin ese texto, así que el filtro no lo ve y
+    // hacía falta este descarte. Se encontró manejando la app desplegada:
+    // cada pantalla rota dejaba dos tickets, uno bueno y uno sin traza.
+    setTimeout(() => {
+      if (loReclamoUnaBarrera(valor)) return
+      reportarError(valor, 'consola')
+    }, 0)
   }
 
   // 4. Lo que quedó en la cola de una sesión sin internet.
