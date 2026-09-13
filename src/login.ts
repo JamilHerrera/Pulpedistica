@@ -1,6 +1,11 @@
 import './index.css'
 import { supabase } from './lib/supabase'
 import { registrarServiceWorker } from './lib/registrarSW'
+import { instalarCapturaDeErrores } from './lib/tickets'
+
+// El login es un bundle aparte del panel: sin esto, los fallos de la pantalla
+// por la que entra TODO el mundo serian los unicos sin ticket.
+instalarCapturaDeErrores()
 
 registrarServiceWorker()
 

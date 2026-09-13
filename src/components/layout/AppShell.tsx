@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Home, TrendingUp, ShoppingCart, HandCoins, Package, BarChart2, MessageSquare, Users, LogOut } from 'lucide-react'
+import { Home, TrendingUp, ShoppingCart, HandCoins, Package, BarChart2, MessageSquare, Users, Bug, LogOut } from 'lucide-react'
 import type { Screen } from '../../types'
 
 interface NavItem {
@@ -23,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'analisis',   icon: BarChart2,    label: 'Análisis',    labelMovil: 'Análisis', soloAdmin: true },
   { id: 'usuarios',   icon: Users,        label: 'Usuarios',    labelMovil: 'Usuarios', soloAdmin: true },
   { id: 'comentarios', icon: MessageSquare, label: 'Comentarios', labelMovil: 'Opiniones', soloSoporte: true },
+  { id: 'tickets',    icon: Bug,          label: 'Tickets',     labelMovil: 'Tickets',  soloSoporte: true },
 ]
 
 const TITLES: Record<Screen, string> = {
@@ -34,6 +35,7 @@ const TITLES: Record<Screen, string> = {
   analisis:   'Análisis',
   usuarios:   'Usuarios del negocio',
   comentarios:'Comentarios de los usuarios',
+  tickets:    'Tickets de errores',
 }
 
 interface Props {
@@ -133,7 +135,9 @@ export function AppShell({
 
       {/* ── Nav inferior (solo móvil) ─────────────────────────────────── */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-white/[0.06] bg-surface/95 backdrop-blur-xl safe-bottom">
-        <div className="flex items-center justify-around px-0.5 py-1.5">
+        {/* Desplazable: con las secciones de soporte son nueve iconos y en un
+            teléfono angosto no entran. La barra ya se dibuja sin scrollbar. */}
+        <div className="flex items-center justify-around gap-0.5 overflow-x-auto px-0.5 py-1.5">
           {navVisible.map(({ id, icon: Icon, labelMovil }) => {
             const isActive = active === id
             return (
@@ -141,7 +145,7 @@ export function AppShell({
                 key={id}
                 onClick={() => onChange(id)}
                 aria-current={isActive ? 'page' : undefined}
-                className="flex flex-col items-center gap-0.5 px-1.5 py-1.5 rounded-xl no-select transition-all active:scale-90"
+                className="flex shrink-0 flex-col items-center gap-0.5 px-1.5 py-1.5 rounded-xl no-select transition-all active:scale-90"
               >
                 <Icon
                   size={19}

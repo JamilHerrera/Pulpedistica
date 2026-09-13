@@ -9,17 +9,20 @@ import { Inventario } from './screens/Inventario'
 import { Analisis } from './screens/Analisis'
 import { Comentarios } from './screens/Comentarios'
 import { Usuarios } from './screens/Usuarios'
+import { Tickets } from './screens/Tickets'
 import { EnviarComentario } from './components/ui/EnviarComentario'
+import { BarreraDeError } from './components/ui/BarreraDeError'
 import { usePerfil } from './hooks/usePerfil'
 import { useFeedback } from './hooks/useFeedback'
 import { supabase } from './lib/supabase'
 import { migrarPreciosLocales } from './lib/migrarPrecios'
 import { limpiarCache } from './lib/cache'
+import { fijarPantallaActual } from './lib/tickets'
 import type { Screen, ToastMessage, ToastType } from './types'
 
 let toastCounter = 0
 
-const PANTALLAS: Screen[] = ['dashboard', 'semaforo', 'venta', 'fiados', 'inventario', 'analisis', 'usuarios', 'comentarios']
+const PANTALLAS: Screen[] = ['dashboard', 'semaforo', 'venta', 'fiados', 'inventario', 'analisis', 'usuarios', 'comentarios', 'tickets']
 
 /**
  * Pantalla inicial según `?pantalla=` de la URL.
@@ -41,6 +44,10 @@ export default function AdminApp() {
 
   // Sube por única vez los precios que hayan quedado en este navegador.
   useEffect(() => { migrarPreciosLocales() }, [])
+
+  // Los tickets se abren desde fuera de React, así que la captura no puede
+  // leer el estado: hay que irle avisando en qué sección está el usuario.
+  useEffect(() => { fijarPantallaActual(screen) }, [screen])
 
   // Refleja la sección en la URL para que se pueda compartir o recargar sin
   // volver al inicio. `replaceState` evita llenar el historial del navegador.
@@ -75,6 +82,7 @@ export default function AdminApp() {
     analisis:  <Analisis />,
     usuarios:  <Usuarios onToast={addToast} />,
     comentarios: <Comentarios onToast={addToast} />,
+    tickets:   <Tickets onToast={addToast} />,
   }
 
   return (
@@ -93,7 +101,9 @@ export default function AdminApp() {
       <Toast toasts={toasts} onRemove={removeToast} />
 
       <div key={screen} className="animate-fade-in">
-        {screens[screen]}
+        <BarreraDeError claveDeReinicio={screen}>
+          {screens[screen]}
+        </BarreraDeError>
       </div>
 
       {comentando && (

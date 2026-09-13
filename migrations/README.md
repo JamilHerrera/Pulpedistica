@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -39,6 +39,7 @@ order by version;
 | 010 | `010_multi_negocio.sql` | Cada pulpería ve solo sus datos; alta automática al registrarse |
 | 011 | `011_retroalimentacion.sql` | Comentarios de los usuarios, visibles para soporte |
 | 012 | `012_roles_y_invitaciones.sql` | Roles admin/empleado dentro del negocio, con invitaciones |
+| 013 | `013_tickets_de_errores.sql` | La app abre tickets sola cuando algo falla, uno por problema |
 
 ## Notas
 
@@ -53,4 +54,9 @@ order by version;
 - **Cuidado con dos nombres parecidos.** `perfiles.rol` (`admin`/`empleado`)
   define qué puede hacer alguien **dentro de su pulpería**.
   `perfiles.es_soporte` es otra cosa: quien mantiene la aplicación y lee los
-  comentarios de todos los negocios.
+  comentarios y los tickets de todos los negocios.
+- **013 no tiene política de `INSERT`, y es a propósito.** En `tickets` se
+  escribe únicamente llamando a `reportar_error()`, que es `SECURITY DEFINER`.
+  Esa función es la que garantiza el contador de `veces`, el recorte de los
+  textos y el tope anti-inundación; si la app pudiera insertar filas a mano,
+  un navegador en bucle llenaría la tabla.

@@ -72,7 +72,33 @@ export interface Feedback {
   created_at: string
 }
 
-export type Screen = 'dashboard' | 'semaforo' | 'venta' | 'fiados' | 'inventario' | 'analisis' | 'comentarios' | 'usuarios'
+export type EstadoTicket = 'nuevo' | 'en_proceso' | 'resuelto' | 'descartado'
+
+/**
+ * Un problema del sistema, no una ocurrencia suya. La app lo crea sola cuando
+ * captura un error; `veces` cuenta cuántas apariciones cayeron en esta misma
+ * fila. Ver `lib/errores.ts` y la migracion 013.
+ */
+export interface Ticket {
+  id: string
+  /** Identidad del problema. Es lo que deduplica: es UNIQUE en la base. */
+  huella: string
+  titulo: string
+  origen: 'render' | 'promesa' | 'javascript' | 'consola' | 'recurso' | 'manual'
+  detalle: string | null
+  pantalla: string | null
+  ruta: string | null
+  navegador: string | null
+  estado: EstadoTicket
+  nota: string | null
+  veces: number
+  primera_vez: string
+  ultima_vez: string
+  reportado_por: string | null
+  negocio_id: string | null
+}
+
+export type Screen = 'dashboard' | 'semaforo' | 'venta' | 'fiados' | 'inventario' | 'analisis' | 'comentarios' | 'usuarios' | 'tickets'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 

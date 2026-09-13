@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import { registrarServiceWorker } from './lib/registrarSW'
+import { instalarCapturaDeErrores } from './lib/tickets'
+
+// Antes que nada: un error durante el arranque es de los peores —deja la
+// pantalla en blanco— y es justo el que se perderia si esto fuera despues.
+instalarCapturaDeErrores()
 
 registrarServiceWorker()
 
@@ -29,23 +34,28 @@ if (missingEnv) {
     import('./screens/Landing.tsx'),
     import('./screens/NotFound.tsx'),
     import('./components/routing/ProtectedRoute.tsx'),
-  ]).then(([{ default: AdminApp }, { Landing }, { NotFound }, { ProtectedRoute }]) => {
+    import('./components/ui/BarreraDeError.tsx'),
+  ]).then(([{ default: AdminApp }, { Landing }, { NotFound }, { ProtectedRoute }, { BarreraDeError }]) => {
     root.render(
       <StrictMode>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminApp />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        {/* La de más afuera: atrapa lo que reviente en la portada, en el 404
+            o en el panel antes de que monte su propia barrera por sección. */}
+        <BarreraDeError>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminApp />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </BarreraDeError>
       </StrictMode>,
     )
   })
