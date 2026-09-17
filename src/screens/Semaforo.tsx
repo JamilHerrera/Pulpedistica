@@ -3,6 +3,7 @@ import { RefreshCw, Wifi, WifiOff, ChevronDown, ChevronUp, TrendingUp, TrendingD
 import { useSemaforo } from '../hooks/useSemaforo'
 import { etiquetaUmbral } from '../lib/semaforo'
 import type { GrupoRotacion, NivelRotacion, ProductoConRotacion } from '../hooks/useSemaforo'
+import { formatearCantidad } from '../lib/unidades'
 
 function LoadingSpinner() {
   return (
@@ -98,7 +99,7 @@ function ProductRow({
               style={{ width: `${stockPct}%` }} />
           </div>
           <span className="text-white/40 text-[10px] w-14 text-right shrink-0">
-            {producto.stock_actual} en stock
+            {formatearCantidad(producto.stock_actual, producto.unidad)} en stock
           </span>
         </div>
       </div>

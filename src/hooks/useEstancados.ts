@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { consultaCacheada, TTL } from '../lib/cache'
+import type { UnidadMedida } from '../types'
 
 export interface ProductoEstancado {
   id: string
   nombre: string
   stock_actual: number
+  /** Cómo se cuenta: decide si el stock se muestra con decimales y unidad. */
+  unidad?: UnidadMedida | null
+  imagen_url?: string | null
   categoria_id: string
   categorias?: { id: string; nombre: string } | null
   diasSinVenta: number
@@ -28,7 +32,7 @@ export function useEstancados() {
       // 1. Todos los productos con stock > 0
       const prodRes = await consultaCacheada('estancados:productos', async () => await supabase
         .from('productos')
-        .select('id, nombre, stock_actual, categoria_id, categorias(id, nombre)')
+        .select('id, nombre, stock_actual, unidad, imagen_url, categoria_id, categorias(id, nombre)')
         .gt('stock_actual', 0)
         .order('stock_actual', { ascending: false }), TTL.medio)
 

@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -40,6 +40,7 @@ order by version;
 | 011 | `011_retroalimentacion.sql` | Comentarios de los usuarios, visibles para soporte |
 | 012 | `012_roles_y_invitaciones.sql` | Roles admin/empleado dentro del negocio, con invitaciones |
 | 013 | `013_tickets_de_errores.sql` | La app abre tickets sola cuando algo falla, uno por problema |
+| 014 | `014_unidades_y_fotos.sql` | Venta por peso con cantidades decimales, y fotos de producto |
 
 ## Notas
 
@@ -60,3 +61,11 @@ order by version;
   Esa función es la que garantiza el contador de `veces`, el recorte de los
   textos y el tope anti-inundación; si la app pudiera insertar filas a mano,
   un navegador en bucle llenaría la tabla.
+- **014 cambia el tipo de dos columnas.** `productos.stock_actual` y
+  `detalle_ventas.cantidad` pasan de `integer` a `numeric(10,3)`. Es seguro
+  —todo entero cabe— y el archivo comprueba el tipo actual antes de tocar
+  nada, así que reejecutarlo no vuelve a reescribir las tablas.
+- **014 también crea un depósito de Storage.** Es público para LEER, porque
+  una etiqueta `<img>` pide la foto sin mandar la sesión. Lo que se protege es
+  la escritura: las políticas exigen que el primer tramo de la ruta sea el
+  negocio de quien sube, así que ninguna pulpería puede pisar las fotos de otra.

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, TTL } from '../lib/cache'
 import { calcularNivel, ORDEN_NIVELES, type NivelRotacion } from '../lib/semaforo'
+import type { UnidadMedida } from '../types'
 
 export type { NivelRotacion }
 
@@ -10,6 +11,9 @@ export interface ProductoConRotacion {
   id: string
   nombre: string
   stock_actual: number
+  /** Cómo se cuenta: decide si el stock se muestra con decimales y unidad. */
+  unidad?: UnidadMedida | null
+  imagen_url?: string | null
   categoria_id: string
   categorias?: { id: string; nombre: string } | null
   unidades7d: number
@@ -54,7 +58,7 @@ export function useSemaforo() {
       const [prodRes, ventasRes] = await consultaCacheada(`semaforo:${periodo}`, () => Promise.all([
         supabase
           .from('productos')
-          .select('id, nombre, stock_actual, categoria_id, categorias(id, nombre)')
+          .select('id, nombre, stock_actual, unidad, imagen_url, categoria_id, categorias(id, nombre)')
           .order('nombre'),
         supabase
           .from('ventas')

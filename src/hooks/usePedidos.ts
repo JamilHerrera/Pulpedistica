@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Categoria } from '../types'
+import type { UnidadMedida } from '../types'
 
 export interface ProductoPedido {
   id: string
   nombre: string
   stock_actual: number
+  /** Cómo se cuenta: decide si el stock se muestra con decimales y unidad. */
+  unidad?: UnidadMedida | null
+  imagen_url?: string | null
   categoria_id: string
   categorias: Categoria | null
   unidades7d: number
@@ -29,7 +33,7 @@ export function usePedidos() {
       const [prodRes, catRes, ventasRes] = await Promise.all([
         supabase
           .from('productos')
-          .select('id, nombre, stock_actual, categoria_id, categorias(id, nombre, color_semaforo)')
+          .select('id, nombre, stock_actual, unidad, imagen_url, categoria_id, categorias(id, nombre, color_semaforo)')
           .order('nombre'),
         supabase
           .from('categorias')

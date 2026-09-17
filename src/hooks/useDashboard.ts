@@ -50,7 +50,7 @@ export function useDashboard() {
         // Historial reciente: incluir anuladas (para mostrarlas con badge)
         supabase
           .from('ventas')
-          .select('id, fecha_hora, monto_total, anulada, detalle_ventas(id, cantidad, subtotal, productos(nombre))')
+          .select('id, fecha_hora, monto_total, anulada, detalle_ventas(id, cantidad, subtotal, productos(nombre, unidad))')
           .order('fecha_hora', { ascending: false })
           .limit(5),
 

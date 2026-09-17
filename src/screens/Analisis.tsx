@@ -4,6 +4,7 @@ import { TrendingUp, ShoppingBag, BarChart2, Calendar, ClipboardCopy, Check, Pac
 import { useAnalisis } from '../hooks/useAnalisis'
 import { usePedidos } from '../hooks/usePedidos'
 import { SkeletonStats, SkeletonList } from '../components/ui/SkeletonCard'
+import { formatearCantidad } from '../lib/unidades'
 
 // ─── Tooltip del gráfico ───────────────────────────────────────────────────────
 
@@ -285,7 +286,7 @@ function TabPedidos() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">{p.nombre}</p>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-white/30 text-xs">Stock: {p.stock_actual}</span>
+                        <span className="text-white/30 text-xs">Stock: {formatearCantidad(p.stock_actual, p.unidad)}</span>
                         <span className="text-white/30 text-xs">Vendidas 7d: {p.unidades7d}</span>
                       </div>
                     </div>
@@ -314,7 +315,7 @@ function TabPedidos() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white/70 text-sm font-medium truncate">{p.nombre}</p>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-white/25 text-xs">Stock: {p.stock_actual}</span>
+                        <span className="text-white/25 text-xs">Stock: {formatearCantidad(p.stock_actual, p.unidad)}</span>
                         <span className="text-white/25 text-xs">Vendidas 7d: {p.unidades7d}</span>
                       </div>
                     </div>

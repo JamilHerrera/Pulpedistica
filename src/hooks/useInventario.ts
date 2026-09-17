@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
-import type { Producto, Categoria } from '../types'
+import {
+  DEPOSITO, motivoDeRechazo, reducirImagen, rutaDeFoto, rutaDesdeUrl,
+} from '../lib/imagenes'
+import type { Producto, Categoria, UnidadMedida } from '../types'
 
 export function useInventario() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -67,14 +70,115 @@ export function useInventario() {
     }
   }, [])
 
+  /**
+   * Cambia cómo se cuenta un producto.
+   *
+   * Pasar de "por libra" a "por unidad" no toca el stock ya cargado: 2.5 sigue
+   * siendo 2.5 hasta que alguien lo corrija. Truncarlo en silencio haría
+   * desaparecer existencias reales sin que nadie lo pidiera.
+   */
+  const cambiarUnidad = useCallback(async (id: string, unidad: UnidadMedida): Promise<boolean> => {
+    setUpdatingId(id)
+    try {
+      const { error } = await supabase.from('productos').update({ unidad }).eq('id', id)
+      if (error) throw error
+      invalidar('inventario', 'productos', 'venta')
+      setProductos((prev) => prev.map((p) => (p.id === id ? { ...p, unidad } : p)))
+      return true
+    } catch (e) {
+      console.error('Error cambiando la unidad:', e)
+      return false
+    } finally {
+      setUpdatingId(null)
+    }
+  }, [])
+
+  /**
+   * Sube la foto de un producto.
+   *
+   * Tres pasos, en este orden a propósito: se reduce la imagen, se sube con un
+   * nombre nuevo, y recién entonces se apunta la fila a la dirección nueva. Si
+   * algo falla a mitad de camino, el producto se queda con la foto que tenía
+   * en vez de quedar apuntando a una que no existe.
+   *
+   * La foto anterior se borra al final. Que ese borrado falle no es motivo
+   * para dar por fallida la operación: lo que el usuario pidió —ver su foto
+   * nueva— ya ocurrió, y lo peor que queda es un archivo huérfano.
+   */
+  const subirFoto = useCallback(async (producto: Producto, archivo: File): Promise<string | null> => {
+    setUpdatingId(producto.id)
+    try {
+      const rechazo = motivoDeRechazo(archivo.type, archivo.size)
+      if (rechazo) return rechazo
+
+      const { data: negocioId, error: errorNegocio } = await supabase.rpc('mi_negocio')
+      if (errorNegocio) throw errorNegocio
+      if (!negocioId) return 'No se pudo identificar tu negocio.'
+
+      const reducida = await reducirImagen(archivo)
+      const ruta = rutaDeFoto(negocioId as string, producto.id, reducida.type, Date.now())
+
+      const { error: errorSubida } = await supabase.storage
+        .from(DEPOSITO)
+        .upload(ruta, reducida, { contentType: reducida.type, upsert: false })
+      if (errorSubida) throw errorSubida
+
+      const { data: publica } = supabase.storage.from(DEPOSITO).getPublicUrl(ruta)
+      const imagen_url = publica.publicUrl
+
+      const { error: errorFila } = await supabase
+        .from('productos').update({ imagen_url }).eq('id', producto.id)
+      if (errorFila) throw errorFila
+
+      const anterior = rutaDesdeUrl(producto.imagen_url)
+      if (anterior) await supabase.storage.from(DEPOSITO).remove([anterior])
+
+      invalidar('inventario', 'productos', 'venta')
+      setProductos((prev) => prev.map((p) => (p.id === producto.id ? { ...p, imagen_url } : p)))
+      return null
+    } catch (e) {
+      console.error('Error subiendo la foto:', e)
+      return 'No se pudo subir la foto. Revisá tu conexión.'
+    } finally {
+      setUpdatingId(null)
+    }
+  }, [])
+
+  /** Quita la foto: primero la fila, después el archivo. */
+  const quitarFoto = useCallback(async (producto: Producto): Promise<boolean> => {
+    setUpdatingId(producto.id)
+    try {
+      const { error } = await supabase
+        .from('productos').update({ imagen_url: null }).eq('id', producto.id)
+      if (error) throw error
+
+      const ruta = rutaDesdeUrl(producto.imagen_url)
+      if (ruta) await supabase.storage.from(DEPOSITO).remove([ruta])
+
+      invalidar('inventario', 'productos', 'venta')
+      setProductos((prev) => prev.map((p) => (p.id === producto.id ? { ...p, imagen_url: null } : p)))
+      return true
+    } catch (e) {
+      console.error('Error quitando la foto:', e)
+      return false
+    } finally {
+      setUpdatingId(null)
+    }
+  }, [])
+
   const agregarProducto = useCallback(
     // El precio no se guarda en productos: se captura por venta en
     // detalle_ventas.subtotal (ver el cache de precios en useVenta).
-    async (nombre: string, stock_actual: number, categoria_id: string): Promise<boolean> => {
+    async (
+      nombre: string,
+      stock_actual: number,
+      categoria_id: string,
+      unidad: UnidadMedida = 'unidad',
+    ): Promise<boolean> => {
       try {
         const { error } = await supabase
           .from('productos')
-          .insert({ nombre, stock_actual, categoria_id })
+          .insert({ nombre, stock_actual, categoria_id, unidad })
         if (error) throw error
         invalidar('inventario', 'productos', 'semaforo', 'dashboard', 'estancados', 'venta')
         await fetchData()
@@ -121,6 +225,9 @@ export function useInventario() {
     error,
     updatingId,
     actualizarStock,
+    cambiarUnidad,
+    subirFoto,
+    quitarFoto,
     agregarProducto,
     agregarCategoria,
     refetch: fetchData,

@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
-import { Search, Plus, Package, Check, X, ChevronDown, Tag, Info } from 'lucide-react'
+import { useState, useMemo, useRef } from 'react'
+import { Search, Plus, Package, Check, X, ChevronDown, Tag, Info, Camera, Trash2 } from 'lucide-react'
 import { useInventario } from '../hooks/useInventario'
 import { usePerfil } from '../hooks/usePerfil'
 import { SkeletonList } from '../components/ui/SkeletonCard'
-import type { Producto } from '../types'
+import { FotoProducto } from '../components/ui/FotoProducto'
+import { UNIDADES, UNIDADES_DISPONIBLES, formatearCantidad, redondearCantidad, reglaDe } from '../lib/unidades'
+import type { Producto, UnidadMedida } from '../types'
 
 interface Props {
   onToast: (title: string, msg?: string, type?: 'success' | 'error' | 'warning' | 'info') => void
@@ -19,17 +21,30 @@ function stockStatus(stock: number): { label: string; color: string; bar: string
 }
 
 function ProductoCard({
-  producto, onUpdate, isUpdating,
-}: Readonly<{ producto: Producto; onUpdate: (id: string, stock: number) => void; isUpdating: boolean }>) {
+  producto, onUpdate, isUpdating, esAdmin, onFoto, onQuitarFoto, onUnidad,
+}: Readonly<{
+  producto: Producto
+  onUpdate: (id: string, stock: number) => void
+  isUpdating: boolean
+  esAdmin: boolean
+  onFoto: (p: Producto, archivo: File) => void
+  onQuitarFoto: (p: Producto) => void
+  onUnidad: (id: string, unidad: UnidadMedida) => void
+}>) {
   const [editing, setEditing] = useState(false)
-  const [val, setVal] = useState(producto.stock_actual.toString())
+  const [val, setVal] = useState(String(producto.stock_actual))
+  const archivoRef = useRef<HTMLInputElement>(null)
+
   const status = stockStatus(producto.stock_actual)
   const max = Math.max(50, producto.stock_actual)
   const pct = Math.min(100, (producto.stock_actual / max) * 100)
+  const { abreviatura } = reglaDe(producto.unidad)
 
   const handleSave = () => {
-    const n = Number.parseInt(val, 10)
-    if (isNaN(n) || n < 0) return
+    // El stock se redondea según la unidad del producto: 2.5 libras de queso
+    // es una existencia real, 2.5 cartones de huevos no.
+    const n = redondearCantidad(Number.parseFloat(val.replace(',', '.')), producto.unidad)
+    if (!Number.isFinite(n) || n < 0) return
     onUpdate(producto.id, n)
     setEditing(false)
   }
@@ -37,53 +52,114 @@ function ProductoCard({
   return (
     <div className={`glass-card p-4 transition-all duration-200 ${isUpdating ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-surface-elevated flex items-center justify-center shrink-0">
-          <Package size={18} className={status.color} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm truncate">{producto.nombre}</p>
-          {producto.categorias && (
-            <p className="text-white/30 text-xs mt-0.5">{producto.categorias.nombre}</p>
+        {/* La foto es el botón de subirla: no hace falta otro control. */}
+        <div className="relative shrink-0">
+          <FotoProducto
+            nombre={producto.nombre}
+            url={producto.imagen_url}
+            className="h-12 w-12 rounded-xl"
+            iconSize={20}
+          />
+          {esAdmin && (
+            <>
+              <input
+                ref={archivoRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                // `capture` deja que el teléfono ofrezca la cámara directo.
+                capture="environment"
+                className="hidden"
+                aria-label={`Foto de ${producto.nombre}`}
+                onChange={(e) => {
+                  const archivo = e.target.files?.[0]
+                  if (archivo) onFoto(producto, archivo)
+                  // Se limpia para poder volver a elegir el MISMO archivo.
+                  e.target.value = ''
+                }}
+              />
+              <button
+                onClick={() => archivoRef.current?.click()}
+                title={producto.imagen_url ? 'Cambiar la foto' : 'Agregar una foto'}
+                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-lg border border-white/15 bg-surface-elevated text-white/60 transition-all hover:text-white active:scale-90"
+              >
+                <Camera size={11} />
+              </button>
+            </>
           )}
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">{producto.nombre}</p>
+
+          <div className="mt-0.5 flex items-center gap-2">
+            {producto.categorias && (
+              <span className="truncate text-xs text-white/30">{producto.categorias.nombre}</span>
+            )}
+            {esAdmin ? (
+              <select
+                value={producto.unidad ?? 'unidad'}
+                onChange={(e) => onUnidad(producto.id, e.target.value as UnidadMedida)}
+                aria-label={`Unidad de ${producto.nombre}`}
+                className="rounded-lg border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-white/50 outline-none focus:border-brand/50"
+              >
+                {UNIDADES_DISPONIBLES.map((u) => (
+                  <option key={u} value={u} className="bg-surface">{UNIDADES[u].etiqueta}</option>
+                ))}
+              </select>
+            ) : (
+              abreviatura && <span className="text-[10px] text-white/30">por {abreviatura}</span>
+            )}
+            {producto.imagen_url && esAdmin && (
+              <button
+                onClick={() => onQuitarFoto(producto)}
+                title="Quitar la foto"
+                className="text-white/20 transition-colors hover:text-danger"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
+          </div>
+
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/8">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${status.bar}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className={`text-xs font-bold shrink-0 ${status.color}`}>{status.label}</span>
+            <span className={`shrink-0 text-xs font-bold ${status.color}`}>{status.label}</span>
           </div>
         </div>
 
         {editing ? (
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex shrink-0 items-center gap-1.5">
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={val}
               autoFocus
+              aria-label={`Stock de ${producto.nombre}`}
               onChange={(e) => setVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
-              className="w-16 input-field text-center py-1.5 text-sm h-8"
-              min="0"
+              className="input-field h-8 w-16 py-1.5 text-center text-sm"
             />
-            <button onClick={handleSave} className="w-8 h-8 rounded-xl bg-success/20 text-success flex items-center justify-center active:scale-90">
+            <button onClick={handleSave} aria-label="Guardar" className="flex h-8 w-8 items-center justify-center rounded-xl bg-success/20 text-success active:scale-90">
               <Check size={14} strokeWidth={2.5} />
             </button>
-            <button onClick={() => { setEditing(false); setVal(producto.stock_actual.toString()) }}
-              className="w-8 h-8 rounded-xl bg-white/5 text-white/40 flex items-center justify-center active:scale-90">
+            <button
+              onClick={() => { setEditing(false); setVal(String(producto.stock_actual)) }}
+              aria-label="Cancelar"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 text-white/40 active:scale-90"
+            >
               <X size={14} />
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="shrink-0 text-right group"
-          >
-            <p className="text-white font-black text-xl leading-none group-hover:text-brand-light transition-colors">
-              {producto.stock_actual}
+          <button onClick={() => setEditing(true)} className="group shrink-0 text-right">
+            <p className="text-xl font-black leading-none text-white transition-colors group-hover:text-brand-light">
+              {formatearCantidad(producto.stock_actual, producto.unidad)}
             </p>
-            <p className="text-white/25 text-[10px]">unidades ✎</p>
+            <p className="text-[10px] text-white/25">{abreviatura ? 'en existencia ✎' : 'unidades ✎'}</p>
           </button>
         )}
       </div>
@@ -96,7 +172,7 @@ function AddProductModal({
   categorias, onAdd, onAddCategoria, onClose,
 }: Readonly<{
   categorias: { id: string; nombre: string }[]
-  onAdd: (nombre: string, stock: number, catId: string) => Promise<boolean>
+  onAdd: (nombre: string, stock: number, catId: string, unidad: UnidadMedida) => Promise<boolean>
   onAddCategoria: (nombre: string) => Promise<string | null>
   onClose: () => void
 }>) {
@@ -105,6 +181,7 @@ function AddProductModal({
   // Producto
   const [nombre, setNombre] = useState('')
   const [stock, setStock] = useState('0')
+  const [unidad, setUnidad] = useState<UnidadMedida>('unidad')
   const [catId, setCatId] = useState(categorias[0]?.id ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -119,7 +196,8 @@ function AddProductModal({
     if (!catId) { setTab('categoria'); return }
     setProdError(null)
     setSaving(true)
-    const ok = await onAdd(nombre.trim(), Number.parseInt(stock, 10) || 0, catId)
+    const cantidad = redondearCantidad(Number.parseFloat(stock.replace(',', '.')) || 0, unidad)
+    const ok = await onAdd(nombre.trim(), cantidad, catId, unidad)
     setSaving(false)
     if (ok) onClose()
     else setProdError('No se pudo guardar. Verifica tu conexión a Supabase.')
@@ -187,11 +265,35 @@ function AddProductModal({
                 <input value={nombre} onChange={(e) => setNombre(e.target.value)}
                   placeholder="Ej: Arroz 1 lb" className="input-field" autoFocus />
               </div>
-              <div>
-                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Stock inicial</label>
-                <input type="number" value={stock} onChange={(e) => setStock(e.target.value)}
-                  className="input-field" min="0" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="stock-inicial" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Stock inicial</label>
+                  <input id="stock-inicial" type="text" inputMode="decimal" value={stock}
+                    onChange={(e) => setStock(e.target.value)} className="input-field" />
+                </div>
+                <div>
+                  <label htmlFor="unidad-producto" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Cómo se vende</label>
+                  <div className="relative">
+                    <select
+                      id="unidad-producto"
+                      value={unidad}
+                      onChange={(e) => setUnidad(e.target.value as UnidadMedida)}
+                      className="input-field appearance-none pr-8"
+                    >
+                      {UNIDADES_DISPONIBLES.map((u) => (
+                        <option key={u} value={u} className="bg-surface">{UNIDADES[u].etiqueta}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  </div>
+                </div>
               </div>
+              {/* Lo que se pesa admite media libra; lo que se cuenta, no. */}
+              <p className="text-white/25 text-[11px] -mt-1">
+                {UNIDADES[unidad].fraccionable
+                  ? 'Vas a poder cobrar media libra, un cuarto, o la cantidad que marque la balanza.'
+                  : 'Solo se va a poder cobrar en cantidades enteras.'}
+              </p>
               <div>
                 <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Categoría</label>
                 {categorias.length === 0 ? (
@@ -279,7 +381,11 @@ function AddProductModal({
 }
 
 export function Inventario({ onToast }: Readonly<Props>) {
-  const { productos, categorias, loading, error, updatingId, actualizarStock, agregarProducto, agregarCategoria, refetch } = useInventario()
+  const {
+    productos, categorias, loading, error, updatingId,
+    actualizarStock, cambiarUnidad, subirFoto, quitarFoto,
+    agregarProducto, agregarCategoria, refetch,
+  } = useInventario()
   // Editar el catalogo es del admin: las politicas lo exigen del lado del servidor.
   const { esAdmin } = usePerfil()
   const [query, setQuery] = useState('')
@@ -376,10 +482,27 @@ export function Inventario({ onToast }: Readonly<Props>) {
               key={p.id}
               producto={p}
               isUpdating={updatingId === p.id}
+              esAdmin={esAdmin}
               onUpdate={async (id, stock) => {
                 const ok = await actualizarStock(id, stock)
-                if (ok) onToast('Stock actualizado', `${p.nombre}: ${stock} unidades`, 'success')
+                if (ok) onToast('Stock actualizado', `${p.nombre}: ${formatearCantidad(stock, p.unidad)}`, 'success')
                 else onToast('Error al actualizar', undefined, 'error')
+              }}
+              onUnidad={async (id, unidad) => {
+                const ok = await cambiarUnidad(id, unidad)
+                if (ok) onToast('Unidad actualizada', `${p.nombre}: ${UNIDADES[unidad].etiqueta.toLowerCase()}`, 'success')
+                else onToast('No se pudo cambiar la unidad', undefined, 'error')
+              }}
+              onFoto={async (prod, archivo) => {
+                onToast('Subiendo la foto…', prod.nombre, 'info')
+                const problema = await subirFoto(prod, archivo)
+                if (problema) onToast('No se pudo subir', problema, 'error')
+                else onToast('Foto lista', prod.nombre, 'success')
+              }}
+              onQuitarFoto={async (prod) => {
+                const ok = await quitarFoto(prod)
+                if (ok) onToast('Foto quitada', prod.nombre, 'success')
+                else onToast('No se pudo quitar la foto', undefined, 'error')
               }}
             />
           ))}
@@ -390,8 +513,8 @@ export function Inventario({ onToast }: Readonly<Props>) {
         <AddProductModal
           categorias={categorias}
           onClose={() => setShowAdd(false)}
-          onAdd={async (nombre, stock, catId) => {
-            const ok = await agregarProducto(nombre, stock, catId)
+          onAdd={async (nombre, stock, catId, unidad) => {
+            const ok = await agregarProducto(nombre, stock, catId, unidad)
             if (ok) onToast('Producto agregado', nombre, 'success')
             else onToast('Error al agregar', undefined, 'error')
             return ok

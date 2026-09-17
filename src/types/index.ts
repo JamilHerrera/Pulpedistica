@@ -1,3 +1,7 @@
+import type { UnidadMedida } from '../lib/unidades'
+
+export type { UnidadMedida }
+
 export interface Categoria {
   id: string
   nombre: string
@@ -11,6 +15,13 @@ export interface Producto {
   categoria_id: string
   /** Precio de catálogo. NULL mientras no se le haya fijado uno. */
   precio?: number | null
+  /**
+   * Cómo se cuenta este producto. Decide si admite cantidades partidas: media
+   * libra de queso sí, medio cartón de huevos no. Ver `lib/unidades.ts`.
+   */
+  unidad?: UnidadMedida | null
+  /** Dirección pública de la foto en Storage. NULL si no tiene. */
+  imagen_url?: string | null
   categorias?: Categoria
 }
 

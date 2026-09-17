@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
+import { redondearCantidad, cantidadValida, sumarPaso, totalDeVenta } from '../lib/unidades'
 import type { Producto, CartItem } from '../types'
 
 export function useVenta() {
@@ -16,19 +17,28 @@ export function useVenta() {
   // MISMA venta en vez de duplicarla, y se renueva recien al vaciarse.
   const claveVenta = useRef(nuevaClave())
 
-  const searchProductos = useCallback(async (query: string): Promise<Producto[]> => {
-    if (!query.trim()) return []
-    const { data, error } = await supabase
-      .from('productos')
-      .select('*, categorias(nombre, color_semaforo)')
-      .ilike('nombre', `%${query}%`)
-      .order('nombre')
-      .limit(10)
+  /**
+   * Todo el catálogo, para mostrarlo entero en la pantalla de venta.
+   *
+   * Antes solo se llegaba a un producto escribiéndolo en el buscador o si ya
+   * había sido vendido alguna vez, así que un producto recién cargado era
+   * invisible hasta que alguien adivinaba su nombre. Se cachea porque el
+   * catálogo de una pulpería cambia mucho menos seguido que sus ventas.
+   */
+  const listarCatalogo = useCallback(async (): Promise<Producto[]> => {
+    const { data, error } = await consultaCacheada(
+      'venta:catalogo',
+      async () => await supabase
+        .from('productos')
+        .select('*, categorias(id, nombre, color_semaforo)')
+        .order('nombre'),
+      TTL.corto,
+    )
     if (error) throw error
     return (data ?? []) as Producto[]
   }, [])
 
-  const addToCart = useCallback((producto: Producto, precio_unitario: number) => {
+  const addToCart = useCallback((producto: Producto, precio_unitario: number, cantidadInicial?: number) => {
     setPreciosLocales((prev) => ({ ...prev, [producto.id]: precio_unitario }))
 
     // El precio pasa a ser parte del catálogo, no solo de esta venta.
@@ -45,24 +55,52 @@ export function useVenta() {
     setCart((prev) => {
       const yaEstaEnElCarrito = prev.some((i) => i.producto.id === producto.id)
       if (yaEstaEnElCarrito) {
+        // Volver a tocarlo suma un escalón de SU unidad: uno más si se cuenta,
+        // un cuarto de libra más si se pesa.
         return prev.map((i) =>
           i.producto.id === producto.id
-            ? { ...i, cantidad: i.cantidad + 1 }
+            ? { ...i, cantidad: sumarPaso(i.cantidad, i.producto.unidad, 1) }
             : i,
         )
       }
-      return [...prev, { producto, cantidad: 1, precio_unitario }]
+      // Arranca en una unidad entera aunque se venda por peso: quien pide
+      // queso pide "una libra" y después ajusta, no arranca en 0.25.
+      return [...prev, { producto, cantidad: cantidadInicial ?? 1, precio_unitario }]
     })
   }, [])
 
+  /**
+   * Fija la cantidad de una línea.
+   *
+   * Cero o menos saca el producto del carrito, que es lo que la gente espera
+   * al restar hasta el fondo. Lo demás se redondea según la unidad del
+   * producto: pedir 2.5 de algo que se cuenta de a uno deja 2, y lo que no
+   * llega a ser una cantidad válida se ignora en vez de escribir una basura.
+   */
   const updateCantidad = useCallback((productoId: string, cantidad: number) => {
-    if (cantidad <= 0) {
-      setCart((prev) => prev.filter((i) => i.producto.id !== productoId))
-    } else {
-      setCart((prev) =>
-        prev.map((i) => (i.producto.id === productoId ? { ...i, cantidad } : i)),
-      )
-    }
+    setCart((prev) => {
+      const linea = prev.find((i) => i.producto.id === productoId)
+      if (!linea) return prev
+
+      const ajustada = redondearCantidad(cantidad, linea.producto.unidad)
+      if (ajustada <= 0) return prev.filter((i) => i.producto.id !== productoId)
+      if (!cantidadValida(ajustada, linea.producto.unidad)) return prev
+
+      return prev.map((i) => (i.producto.id === productoId ? { ...i, cantidad: ajustada } : i))
+    })
+  }, [])
+
+  /** Suma o resta un escalón de la unidad del producto. */
+  const ajustarCantidad = useCallback((productoId: string, pasos: number) => {
+    setCart((prev) => {
+      const linea = prev.find((i) => i.producto.id === productoId)
+      if (!linea) return prev
+
+      const siguiente = sumarPaso(linea.cantidad, linea.producto.unidad, pasos)
+      if (siguiente <= 0) return prev.filter((i) => i.producto.id !== productoId)
+
+      return prev.map((i) => (i.producto.id === productoId ? { ...i, cantidad: siguiente } : i))
+    })
   }, [])
 
   const updatePrecio = useCallback((productoId: string, precio: number) => {
@@ -79,7 +117,9 @@ export function useVenta() {
 
   const clearCart = useCallback(() => setCart([]), [])
 
-  const total = cart.reduce((s, i) => s + i.cantidad * i.precio_unitario, 0)
+  // Cada línea se redondea al centavo antes de sumarse, para que el total
+  // coincida con lo que el cliente ve sumando los subtotales de la pantalla.
+  const total = totalDeVenta(cart)
 
   const confirmarVenta = useCallback(async (): Promise<boolean> => {
     if (cart.length === 0) return false
@@ -115,36 +155,6 @@ export function useVenta() {
     [preciosLocales],
   )
 
-  // Top products by frequency in detalle_ventas (client-side aggregation)
-  const getProductosFrecuentes = useCallback(async (): Promise<Producto[]> => {
-    try {
-      const { data, error } = await consultaCacheada('venta:frecuentes', async () => await supabase
-        .from('detalle_ventas')
-        .select('producto_id, cantidad, productos(id, nombre, stock_actual, categoria_id, categorias(id, nombre, color_semaforo))')
-        .limit(500), TTL.medio)
-      if (error) throw error
-
-      const countMap = new Map<string, { producto: Producto; apariciones: number }>()
-      ;(data ?? []).forEach((dv: any) => {
-        if (!dv.productos) return
-        const pid = dv.producto_id as string
-        if (!countMap.has(pid)) {
-          countMap.set(pid, { producto: dv.productos as Producto, apariciones: 0 })
-        }
-        countMap.get(pid)!.apariciones += Number(dv.cantidad) || 1
-      })
-
-      return Array.from(countMap.values())
-        .sort((a, b) => b.apariciones - a.apariciones)
-        .slice(0, 8)
-        .map((e) => e.producto)
-        .filter((p) => p.stock_actual > 0)
-    } catch (e) {
-      console.error('Error obteniendo frecuentes:', e)
-      return []
-    }
-  }, [])
-
   // Register a free-amount sale (no product, no stock change)
   const registrarMontoLibre = useCallback(async (monto: number): Promise<boolean> => {
     if (monto <= 0) return false
@@ -168,13 +178,13 @@ export function useVenta() {
     saving,
     addToCart,
     updateCantidad,
+    ajustarCantidad,
     updatePrecio,
     removeFromCart,
     clearCart,
     confirmarVenta,
-    searchProductos,
+    listarCatalogo,
     getPrecio,
-    getProductosFrecuentes,
     registrarMontoLibre,
   }
 }

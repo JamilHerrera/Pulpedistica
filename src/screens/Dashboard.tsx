@@ -9,6 +9,7 @@ import { usePerfil } from '../hooks/usePerfil'
 import { SkeletonStats, SkeletonList } from '../components/ui/SkeletonCard'
 import type { Screen, Venta } from '../types'
 import type { ProductoEstancado } from '../hooks/useEstancados'
+import { formatearCantidad } from '../lib/unidades'
 
 const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
@@ -70,7 +71,7 @@ function EstancadosModal({
                       <span className="text-white/30 text-[10px]">{p.categorias.nombre}</span>
                     )}
                     <span className="text-white/20 text-[10px]">•</span>
-                    <span className="text-white/30 text-[10px]">{p.stock_actual} en stock</span>
+                    <span className="text-white/30 text-[10px]">{formatearCantidad(p.stock_actual, p.unidad)} en stock</span>
                   </div>
                   <p className={`text-xs font-bold mt-1 ${color}`}>
                     ⏱ {formatDias(p.diasSinVenta)}
