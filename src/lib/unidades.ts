@@ -168,3 +168,33 @@ export function interpretarCantidad(
   const redondeado = redondearCantidad(valor, unidad)
   return cantidadValida(redondeado, unidad) ? redondeado : null
 }
+
+// ── Cuánto se puede llegar a vender ────────────────────────────────────────
+
+/**
+ * Recorta una cantidad a lo que realmente hay en existencia.
+ *
+ * La base rechaza la venta que supera el stock (migración 015), así que esto
+ * no es la validación: es para que la pantalla no deje armar un carrito que
+ * va a ser rechazado al cobrar. Descubrirlo recién al apretar "Cobrar", con
+ * el cliente enfrente, es la peor forma de enterarse.
+ *
+ * Un stock que no se conoce —una consulta que no trajo la columna— no limita
+ * nada: es preferible dejar pasar y que la base decida, antes que bloquear una
+ * venta por un dato faltante.
+ */
+export function limitarAlStock(
+  cantidad: number,
+  stock: number | null | undefined,
+  unidad: UnidadMedida | null | undefined,
+): number {
+  const pedida = redondearCantidad(cantidad, unidad)
+  if (stock === null || stock === undefined || !Number.isFinite(stock)) return pedida
+  if (stock <= 0) return 0
+  return Math.min(pedida, redondearCantidad(stock, unidad))
+}
+
+/** ¿Queda algo de este producto? */
+export function hayExistencias(stock: number | null | undefined): boolean {
+  return Number.isFinite(stock) && (stock as number) > 0
+}

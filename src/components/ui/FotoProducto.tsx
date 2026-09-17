@@ -12,6 +12,12 @@ import { Package } from 'lucide-react'
  * También cubre el caso de la foto que no carga —un archivo borrado a mano en
  * Storage, o el teléfono sin datos— cayendo al marcador en vez de dejar el
  * ícono roto del navegador.
+ *
+ * Pero ese respaldo AVISA. La primera versión caía en silencio, y eso escondió
+ * un fallo real: la CSP del sitio bloqueaba las fotos de Supabase, así que se
+ * subían bien y no se veían, sin nada en la consola. Ahora se registra una vez
+ * por sesión, con un mensaje sin la dirección: así todas las fotos rotas caen
+ * en UN ticket —el problema es el mismo— en vez de abrir uno por producto.
  */
 
 const TONOS = [
@@ -27,6 +33,9 @@ function tonoDe(nombre: string): string {
   for (let i = 0; i < nombre.length; i++) suma += nombre.charCodeAt(i)
   return TONOS[suma % TONOS.length]
 }
+
+/** Ya se avisó en esta sesión. Evita un ticket por cada tarjeta del catálogo. */
+let yaSeAviso = false
 
 interface Props {
   nombre: string
@@ -45,7 +54,13 @@ export function FotoProducto({ nombre, url, className = '', iconSize = 22 }: Rea
         src={url}
         alt={nombre}
         loading="lazy"
-        onError={() => setFallo(true)}
+        onError={() => {
+          setFallo(true)
+          if (!yaSeAviso) {
+            yaSeAviso = true
+            console.error('Las fotos de producto no se pueden cargar')
+          }
+        }}
         className={`object-cover bg-white/5 ${className}`}
       />
     )

@@ -2,7 +2,10 @@ import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
-import { redondearCantidad, cantidadValida, sumarPaso, totalDeVenta } from '../lib/unidades'
+import {
+  redondearCantidad, cantidadValida, sumarPaso, totalDeVenta,
+  limitarAlStock, hayExistencias,
+} from '../lib/unidades'
 import type { Producto, CartItem } from '../types'
 
 export function useVenta() {
@@ -38,7 +41,15 @@ export function useVenta() {
     return (data ?? []) as Producto[]
   }, [])
 
-  const addToCart = useCallback((producto: Producto, precio_unitario: number, cantidadInicial?: number) => {
+  /**
+   * Agrega o suma un escalón, sin pasarse de lo que hay.
+   *
+   * Devuelve por qué no se pudo, para que la pantalla lo explique en vez de
+   * quedarse muda: un botón que no responde parece una app rota.
+   */
+  const addToCart = useCallback((producto: Producto, precio_unitario: number, cantidadInicial?: number): 'ok' | 'agotado' | 'tope' => {
+    if (!hayExistencias(producto.stock_actual)) return 'agotado'
+
     setPreciosLocales((prev) => ({ ...prev, [producto.id]: precio_unitario }))
 
     // El precio pasa a ser parte del catálogo, no solo de esta venta.
@@ -52,22 +63,31 @@ export function useVenta() {
         })
     }
 
-    setCart((prev) => {
-      const yaEstaEnElCarrito = prev.some((i) => i.producto.id === producto.id)
-      if (yaEstaEnElCarrito) {
-        // Volver a tocarlo suma un escalón de SU unidad: uno más si se cuenta,
-        // un cuarto de libra más si se pesa.
-        return prev.map((i) =>
-          i.producto.id === producto.id
-            ? { ...i, cantidad: sumarPaso(i.cantidad, i.producto.unidad, 1) }
-            : i,
-        )
-      }
-      // Arranca en una unidad entera aunque se venda por peso: quien pide
-      // queso pide "una libra" y después ajusta, no arranca en 0.25.
-      return [...prev, { producto, cantidad: cantidadInicial ?? 1, precio_unitario }]
-    })
-  }, [])
+    const enCarrito = cart.find((i) => i.producto.id === producto.id)
+    if (enCarrito) {
+      // Volver a tocarlo suma un escalón de SU unidad: uno más si se cuenta,
+      // un cuarto de libra más si se pesa.
+      const siguiente = limitarAlStock(
+        sumarPaso(enCarrito.cantidad, producto.unidad, 1),
+        producto.stock_actual,
+        producto.unidad,
+      )
+      if (siguiente <= enCarrito.cantidad) return 'tope'
+
+      setCart((prev) => prev.map((i) =>
+        i.producto.id === producto.id ? { ...i, cantidad: siguiente } : i,
+      ))
+      return 'ok'
+    }
+
+    // Arranca en una unidad entera aunque se venda por peso: quien pide queso
+    // pide "una libra" y después ajusta, no arranca en 0.25.
+    const inicial = limitarAlStock(cantidadInicial ?? 1, producto.stock_actual, producto.unidad)
+    if (inicial <= 0) return 'agotado'
+
+    setCart((prev) => [...prev, { producto, cantidad: inicial, precio_unitario }])
+    return 'ok'
+  }, [cart])
 
   /**
    * Fija la cantidad de una línea.
@@ -82,7 +102,12 @@ export function useVenta() {
       const linea = prev.find((i) => i.producto.id === productoId)
       if (!linea) return prev
 
-      const ajustada = redondearCantidad(cantidad, linea.producto.unidad)
+      const pedida = redondearCantidad(cantidad, linea.producto.unidad)
+      if (pedida <= 0) return prev.filter((i) => i.producto.id !== productoId)
+
+      // Tope en lo que hay: la base rechaza la venta que se pasa, y enterarse
+      // recién al cobrar, con el cliente enfrente, es la peor forma.
+      const ajustada = limitarAlStock(pedida, linea.producto.stock_actual, linea.producto.unidad)
       if (ajustada <= 0) return prev.filter((i) => i.producto.id !== productoId)
       if (!cantidadValida(ajustada, linea.producto.unidad)) return prev
 
@@ -96,7 +121,11 @@ export function useVenta() {
       const linea = prev.find((i) => i.producto.id === productoId)
       if (!linea) return prev
 
-      const siguiente = sumarPaso(linea.cantidad, linea.producto.unidad, pasos)
+      const siguiente = limitarAlStock(
+        sumarPaso(linea.cantidad, linea.producto.unidad, pasos),
+        linea.producto.stock_actual,
+        linea.producto.unidad,
+      )
       if (siguiente <= 0) return prev.filter((i) => i.producto.id !== productoId)
 
       return prev.map((i) => (i.producto.id === productoId ? { ...i, cantidad: siguiente } : i))

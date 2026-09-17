@@ -6,7 +6,8 @@ import {
 import { useVenta } from '../hooks/useVenta'
 import { FotoProducto } from '../components/ui/FotoProducto'
 import {
-  esFraccionable, formatearCantidad, interpretarCantidad, reglaDe, subtotalDeLinea,
+  esFraccionable, formatearCantidad, hayExistencias, interpretarCantidad, reglaDe,
+  subtotalDeLinea,
 } from '../lib/unidades'
 import type { Producto, CartItem } from '../types'
 
@@ -187,17 +188,22 @@ function TarjetaProducto({
   enCarrito: number
   onAdd: () => void
 }>) {
-  const agotado = producto.stock_actual <= 0
+  const agotado = !hayExistencias(producto.stock_actual)
   const poco = !agotado && producto.stock_actual <= 5
   const { abreviatura } = reglaDe(producto.unidad)
 
   return (
     <button
       onClick={onAdd}
+      // Agotado NO se deshabilita: un botón muerto parece una app rota. Se ve
+      // apagado y, al tocarlo, explica qué hacer para poder venderlo.
+      aria-disabled={agotado}
       className={`group relative overflow-hidden rounded-2xl border text-left transition-all active:scale-[0.97] ${
-        enCarrito > 0
-          ? 'border-brand/60 bg-brand/10 shadow-glow-brand'
-          : 'border-white/[0.07] bg-surface-card/80 hover:border-white/20 hover:bg-white/[0.04]'
+        agotado
+          ? 'cursor-not-allowed border-white/[0.05] bg-surface-card/40 opacity-50'
+          : enCarrito > 0
+            ? 'border-brand/60 bg-brand/10 shadow-glow-brand'
+            : 'border-white/[0.07] bg-surface-card/80 hover:border-white/20 hover:bg-white/[0.04]'
       }`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -236,10 +242,14 @@ function TarjetaProducto({
 
       <div className="p-2.5">
         <p className="truncate text-[13px] font-semibold leading-tight text-white">{producto.nombre}</p>
-        <p className={`mt-0.5 text-xs font-bold ${precio > 0 ? 'text-brand-light' : 'text-white/25'}`}>
-          {precio > 0
-            ? <>{dinero(precio)}{abreviatura && <span className="font-medium text-white/30">/{abreviatura}</span>}</>
-            : 'Tocá para ponerle precio'}
+        <p className={`mt-0.5 text-xs font-bold ${agotado ? 'text-danger/70' : precio > 0 ? 'text-brand-light' : 'text-white/25'}`}>
+          {(() => {
+            if (agotado) return 'Sin existencias'
+            if (precio > 0) {
+              return <>{dinero(precio)}{abreviatura && <span className="font-medium text-white/30">/{abreviatura}</span>}</>
+            }
+            return 'Tocá para ponerle precio'
+          })()}
         </p>
       </div>
     </button>
@@ -433,16 +443,40 @@ export function NuevaVenta({ onToast }: Readonly<Props>) {
     [cart],
   )
 
+  const avisarSiNoSePudo = useCallback((producto: Producto, resultado: 'ok' | 'agotado' | 'tope') => {
+    if (resultado === 'agotado') {
+      onToast(
+        `${producto.nombre} está en cero`,
+        'Cargá la existencia en Inventario para poder venderlo',
+        'warning',
+      )
+    } else if (resultado === 'tope') {
+      onToast(
+        'No hay más en existencia',
+        `De ${producto.nombre} quedan ${formatearCantidad(producto.stock_actual, producto.unidad)}`,
+        'warning',
+      )
+    }
+  }, [onToast])
+
   const agregar = useCallback((producto: Producto) => {
+    // Sin existencias no se agrega, pero se explica por qué y qué hacer: la
+    // base rechaza la venta igual, así que dejar armar el carrito solo
+    // aplazaría el problema hasta el momento de cobrar.
+    if (!hayExistencias(producto.stock_actual)) {
+      avisarSiNoSePudo(producto, 'agotado')
+      return
+    }
+
     const precio = getPrecio(producto)
     if (precio > 0) {
-      addToCart(producto, precio)
+      avisarSiNoSePudo(producto, addToCart(producto, precio))
       return
     }
     // Sin precio no se puede cobrar, así que se pide una vez y queda en el
     // catálogo en lugar de volver a preguntarlo en cada venta.
     setPidiendoPrecio(producto)
-  }, [addToCart, getPrecio])
+  }, [addToCart, getPrecio, avisarSiNoSePudo])
 
   const handleConfirmar = async () => {
     if (cart.length === 0) return
@@ -661,7 +695,7 @@ export function NuevaVenta({ onToast }: Readonly<Props>) {
           producto={pidiendoPrecio}
           onClose={() => setPidiendoPrecio(null)}
           onConfirm={(precio) => {
-            addToCart(pidiendoPrecio, precio)
+            avisarSiNoSePudo(pidiendoPrecio, addToCart(pidiendoPrecio, precio))
             setPidiendoPrecio(null)
           }}
         />

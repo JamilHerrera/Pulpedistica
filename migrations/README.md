@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -41,6 +41,7 @@ order by version;
 | 012 | `012_roles_y_invitaciones.sql` | Roles admin/empleado dentro del negocio, con invitaciones |
 | 013 | `013_tickets_de_errores.sql` | La app abre tickets sola cuando algo falla, uno por problema |
 | 014 | `014_unidades_y_fotos.sql` | Venta por peso con cantidades decimales, y fotos de producto |
+| 015 | `015_no_vender_sin_stock.sql` | La venta se rechaza si no alcanza el stock, en vez de toparse en cero |
 
 ## Notas
 

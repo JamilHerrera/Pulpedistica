@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   UNIDADES, esFraccionable, reglaDe, redondearCantidad, cantidadValida,
   sumarPaso, formatearCantidad, subtotalDeLinea, totalDeVenta,
-  interpretarCantidad, CANTIDAD_MAX,
+  interpretarCantidad, limitarAlStock, hayExistencias, CANTIDAD_MAX,
 } from './unidades'
 
 describe('esFraccionable', () => {
@@ -182,5 +182,42 @@ describe('interpretarCantidad', () => {
     // Truncar a 2 en silencio cobraría algo distinto de lo que se tecleó.
     expect(interpretarCantidad('2.5', 'unidad')).toBe(2)
     expect(interpretarCantidad('0.5', 'unidad')).toBeNull()
+  })
+})
+
+describe('limitarAlStock', () => {
+  it('deja pasar lo que alcanza', () => {
+    expect(limitarAlStock(2, 10, 'unidad')).toBe(2)
+    expect(limitarAlStock(1.5, 10, 'libra')).toBe(1.5)
+  })
+
+  it('recorta a lo que hay', () => {
+    expect(limitarAlStock(10, 3, 'unidad')).toBe(3)
+    expect(limitarAlStock(5, 2.5, 'libra')).toBe(2.5)
+  })
+
+  it('un producto agotado no admite nada', () => {
+    expect(limitarAlStock(1, 0, 'unidad')).toBe(0)
+    expect(limitarAlStock(1, -3, 'unidad')).toBe(0)
+  })
+
+  // Mejor dejar pasar y que la base decida, antes que negar una venta por una
+  // columna que la consulta no trajo.
+  it.each([null, undefined, NaN])('un stock desconocido (%s) no limita', (stock) => {
+    expect(limitarAlStock(4, stock as number, 'unidad')).toBe(4)
+  })
+
+  it('respeta la unidad al recortar', () => {
+    expect(limitarAlStock(9.9, 100, 'unidad')).toBe(9)
+  })
+})
+
+describe('hayExistencias', () => {
+  it.each([[1, true], [0.25, true], [0, false], [-1, false]])('%s -> %s', (stock, esperado) => {
+    expect(hayExistencias(stock)).toBe(esperado)
+  })
+
+  it.each([null, undefined])('un stock desconocido (%s) no se da por agotado', (stock) => {
+    expect(hayExistencias(stock as number)).toBe(false)
   })
 })
