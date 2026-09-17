@@ -195,9 +195,11 @@ function TarjetaProducto({
   return (
     <button
       onClick={onAdd}
-      // Agotado NO se deshabilita: un botón muerto parece una app rota. Se ve
-      // apagado y, al tocarlo, explica qué hacer para poder venderlo.
-      aria-disabled={agotado}
+      // Agotado NO se deshabilita, ni con `disabled` ni con `aria-disabled`:
+      // el botón SÍ hace algo —explica que hay que cargar la existencia— y
+      // anunciarlo como deshabilitado le mentiría a quien use un lector de
+      // pantalla, que ni lo intentaría. Se ve apagado y el título lo aclara.
+      title={agotado ? `${producto.nombre} está en cero. Cargá la existencia en Inventario.` : undefined}
       className={`group relative overflow-hidden rounded-2xl border text-left transition-all active:scale-[0.97] ${
         agotado
           ? 'cursor-not-allowed border-white/[0.05] bg-surface-card/40 opacity-50'
