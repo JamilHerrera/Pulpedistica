@@ -111,9 +111,17 @@ alter table public.productos
 --  Depósito público PARA LEER: la etiqueta <img> pide la foto sin enviar la
 --  sesión, y una dirección firmada vencería a los minutos, rompería el caché
 --  del service worker y dejaría la app sin fotos al usarla sin internet. Lo
---  que se protege es la ESCRITURA: las políticas de abajo exigen que el primer
---  tramo de la ruta sea el negocio de quien sube, así que nadie puede pisar ni
---  borrar las fotos de otra pulpería.
+--  que se protege es la ESCRITURA, y con dos condiciones, no una:
+--
+--    · el primer tramo de la ruta tiene que ser el negocio de quien sube, así
+--      que nadie puede tocar las fotos de otra pulpería;
+--    · y quien sube tiene que ser ADMINISTRADOR de ese negocio, igual que para
+--      escribir en `productos`.
+--
+--  La segunda condición se agregó después de probarlo: sin ella, un empleado
+--  —que no puede ni cambiar el nombre de un producto— sí podía subir archivos
+--  y, peor, BORRAR las fotos del catálogo. La pantalla ya lo escondía, pero
+--  esconder un botón no es un control de acceso.
 --
 --  El límite de 2 MB es del lado del servidor. La app además reduce la imagen
 --  antes de subirla, pero eso es una cortesía del cliente, no una garantía.
@@ -147,6 +155,7 @@ create policy fotos_subir on storage.objects
   with check (
     bucket_id = 'productos'
     and (storage.foldername(name))[1] = public.mi_negocio()::text
+    and public.soy_admin_del_negocio()
   );
 
 create policy fotos_reemplazar on storage.objects
@@ -154,6 +163,7 @@ create policy fotos_reemplazar on storage.objects
   using (
     bucket_id = 'productos'
     and (storage.foldername(name))[1] = public.mi_negocio()::text
+    and public.soy_admin_del_negocio()
   );
 
 create policy fotos_borrar on storage.objects
@@ -161,6 +171,7 @@ create policy fotos_borrar on storage.objects
   using (
     bucket_id = 'productos'
     and (storage.foldername(name))[1] = public.mi_negocio()::text
+    and public.soy_admin_del_negocio()
   );
 
 -- ── 5. registrar_venta acepta decimales, pero no en cualquier producto ──────
