@@ -19,6 +19,13 @@ const ESTILO_TIPO: Record<TipoFeedback, { etiqueta: string; icono: typeof Bug; c
   otro:       { etiqueta: 'Otro',       icono: Circle,    color: 'text-white/50',    fondo: 'bg-white/5'    },
 }
 
+/** Qué decir cuando la lista sale vacía, según el filtro elegido. */
+const VACIO: Record<Filtro, string> = {
+  pendientes: 'No hay comentarios sin atender.',
+  atendidos:  'Todavía no marcaste ninguno como atendido.',
+  todos:      'Aún no hay comentarios.',
+}
+
 const fechaHora = (iso: string) =>
   new Date(iso).toLocaleString('es-HN', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -113,6 +120,43 @@ export function Comentarios({ onToast }: Readonly<Props>) {
     onToast(c.atendido ? 'Marcado como pendiente' : 'Marcado como atendido', undefined, 'success')
   }
 
+  function contenido() {
+    if (error) {
+      return (
+        <div className="text-center py-12 space-y-3">
+          <AlertTriangle size={32} className="text-warning mx-auto" />
+          <p className="text-white/40 text-sm">{error}</p>
+        </div>
+      )
+    }
+    if (loading) return <SkeletonList rows={3} />
+    if (visibles.length === 0) {
+      return (
+        <div className="text-center py-16">
+          <MessageSquare size={36} className="text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">{VACIO[filtro]}</p>
+          {!esSoporte && filtro === 'todos' && (
+            <p className="text-white/25 text-xs mt-2">
+              Usá el botón de comentarios en la barra superior para enviar el primero.
+            </p>
+          )}
+        </div>
+      )
+    }
+    return (
+      <div className="grid gap-3 lg:grid-cols-2 items-start">
+        {visibles.map((c) => (
+          <ComentarioCard
+            key={c.id}
+            comentario={c}
+            esSoporte={esSoporte}
+            onToggle={handleToggle}
+          />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 max-w-5xl">
       <div>
@@ -165,39 +209,7 @@ export function Comentarios({ onToast }: Readonly<Props>) {
         ))}
       </div>
 
-      {error ? (
-        <div className="text-center py-12 space-y-3">
-          <AlertTriangle size={32} className="text-warning mx-auto" />
-          <p className="text-white/40 text-sm">{error}</p>
-        </div>
-      ) : loading ? (
-        <SkeletonList rows={3} />
-      ) : visibles.length === 0 ? (
-        <div className="text-center py-16">
-          <MessageSquare size={36} className="text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm">
-            {filtro === 'pendientes' ? 'No hay comentarios sin atender.'
-              : filtro === 'atendidos' ? 'Todavía no marcaste ninguno como atendido.'
-              : 'Aún no hay comentarios.'}
-          </p>
-          {!esSoporte && filtro === 'todos' && (
-            <p className="text-white/25 text-xs mt-2">
-              Usá el botón de comentarios en la barra superior para enviar el primero.
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2 items-start">
-          {visibles.map((c) => (
-            <ComentarioCard
-              key={c.id}
-              comentario={c}
-              esSoporte={esSoporte}
-              onToggle={handleToggle}
-            />
-          ))}
-        </div>
-      )}
+      {contenido()}
     </div>
   )
 }

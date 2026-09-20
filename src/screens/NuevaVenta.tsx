@@ -20,6 +20,38 @@ const FRACCIONES = [0.25, 0.5, 0.75, 1]
 
 const dinero = (n: number) => `L ${n.toFixed(2)}`
 
+// Las clases de la tarjeta salen de funciones y no de ternarios encadenados:
+// tres condiciones metidas en una expresion se vuelven ilegibles justo donde
+// hay que mirarlas, que es el estado visual de cada producto.
+
+/**
+ * Enfoca el campo apenas aparece.
+ *
+ * Reemplaza a `autoFocus`, que está desaconsejado porque roba el foco al
+ * cargar una página. Acá el campo aparece dentro de un modal que la persona
+ * acaba de abrir a propósito, así que enfocarlo es lo que espera: es la
+ * diferencia entre escribir de una o tener que tocar el campo primero, con la
+ * fila esperando. Al ser una referencia estable, React la invoca una sola vez.
+ */
+const enfocarAlAparecer = (el: HTMLInputElement | null) => el?.focus()
+
+function claseDeTarjeta(agotado: boolean, enCarrito: number): string {
+  if (agotado) return 'cursor-not-allowed border-white/[0.05] bg-surface-card/40 opacity-50'
+  if (enCarrito > 0) return 'border-brand/60 bg-brand/10 shadow-glow-brand'
+  return 'border-white/[0.07] bg-surface-card/80 hover:border-white/20 hover:bg-white/[0.04]'
+}
+
+function claseDeStock(agotado: boolean, poco: boolean): string {
+  if (agotado) return 'bg-danger/80 text-white'
+  if (poco) return 'bg-warning/80 text-black'
+  return 'bg-black/50 text-white/80'
+}
+
+function claseDePrecio(agotado: boolean, tienePrecio: boolean): string {
+  if (agotado) return 'text-danger/70'
+  return tienePrecio ? 'text-brand-light' : 'text-white/25'
+}
+
 // ─── Modal Monto Libre ─────────────────────────────────────────────────────────
 
 function MontoLibreModal({
@@ -200,13 +232,7 @@ function TarjetaProducto({
       // anunciarlo como deshabilitado le mentiría a quien use un lector de
       // pantalla, que ni lo intentaría. Se ve apagado y el título lo aclara.
       title={agotado ? `${producto.nombre} está en cero. Cargá la existencia en Inventario.` : undefined}
-      className={`group relative overflow-hidden rounded-2xl border text-left transition-all active:scale-[0.97] ${
-        agotado
-          ? 'cursor-not-allowed border-white/[0.05] bg-surface-card/40 opacity-50'
-          : enCarrito > 0
-            ? 'border-brand/60 bg-brand/10 shadow-glow-brand'
-            : 'border-white/[0.07] bg-surface-card/80 hover:border-white/20 hover:bg-white/[0.04]'
-      }`}
+      className={`group relative overflow-hidden rounded-2xl border text-left transition-all active:scale-[0.97] ${claseDeTarjeta(agotado, enCarrito)}`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         <FotoProducto
@@ -226,11 +252,7 @@ function TarjetaProducto({
         )}
 
         <span
-          className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm ${
-            agotado ? 'bg-danger/80 text-white'
-              : poco ? 'bg-warning/80 text-black'
-              : 'bg-black/50 text-white/80'
-          }`}
+          className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm ${claseDeStock(agotado, poco)}`}
         >
           {agotado ? 'Agotado' : formatearCantidad(producto.stock_actual, producto.unidad)}
         </span>
@@ -244,7 +266,7 @@ function TarjetaProducto({
 
       <div className="p-2.5">
         <p className="truncate text-[13px] font-semibold leading-tight text-white">{producto.nombre}</p>
-        <p className={`mt-0.5 text-xs font-bold ${agotado ? 'text-danger/70' : precio > 0 ? 'text-brand-light' : 'text-white/25'}`}>
+        <p className={`mt-0.5 text-xs font-bold ${claseDePrecio(agotado, precio > 0)}`}>
           {(() => {
             if (agotado) return 'Sin existencias'
             if (precio > 0) {
@@ -300,7 +322,7 @@ function LineaDeCarrito({
             <input
               type="number"
               value={textoPrecio}
-              autoFocus
+              ref={enfocarAlAparecer}
               aria-label="Precio unitario"
               onChange={(e) => setTextoPrecio(e.target.value)}
               onBlur={() => {
@@ -362,7 +384,7 @@ function LineaDeCarrito({
               type="text"
               inputMode="decimal"
               value={textoCantidad}
-              autoFocus
+              ref={enfocarAlAparecer}
               aria-label="Cantidad"
               onChange={(e) => setTextoCantidad(e.target.value)}
               onBlur={confirmarCantidad}

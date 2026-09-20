@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import type { Feedback, TipoFeedback } from '../types'
 
-import { mensajeValido, promedioCalificacion, sinAtender, MENSAJE_MIN, MENSAJE_MAX } from '../lib/feedback'
+import { mensajeValido, promedioCalificacion, sinAtender } from '../lib/feedback'
 
-export { MENSAJE_MIN, MENSAJE_MAX }
+export { MENSAJE_MIN, MENSAJE_MAX } from '../lib/feedback'
 
 export function useFeedback() {
   const [comentarios, setComentarios] = useState<Feedback[]>([])

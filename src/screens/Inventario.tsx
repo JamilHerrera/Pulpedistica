@@ -13,6 +13,17 @@ interface Props {
 
 const STOCK_MIN = 5
 
+/**
+ * Enfoca el campo apenas aparece.
+ *
+ * Reemplaza a `autoFocus`, que está desaconsejado porque roba el foco al
+ * cargar una página. Acá el campo aparece dentro de un modal que la persona
+ * acaba de abrir a propósito, así que enfocarlo es lo que espera: es la
+ * diferencia entre escribir de una o tener que tocar el campo primero, con la
+ * fila esperando. Al ser una referencia estable, React la invoca una sola vez.
+ */
+const enfocarAlAparecer = (el: HTMLInputElement | null) => el?.focus()
+
 function stockStatus(stock: number): { label: string; color: string; bar: string } {
   if (stock === 0)  return { label: 'Agotado', color: 'text-danger',  bar: 'bg-danger'  }
   if (stock <= 5)   return { label: 'Crítico', color: 'text-warning', bar: 'bg-warning' }
@@ -137,7 +148,7 @@ function ProductoCard({
               type="text"
               inputMode="decimal"
               value={val}
-              autoFocus
+              ref={enfocarAlAparecer}
               aria-label={`Stock de ${producto.nombre}`}
               onChange={(e) => setVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
@@ -261,9 +272,9 @@ function AddProductModal({
           <>
             <div className="space-y-3">
               <div>
-                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre del producto</label>
-                <input value={nombre} onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej: Arroz 1 lb" className="input-field" autoFocus />
+                <label htmlFor="nombre-producto" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre del producto</label>
+                <input id="nombre-producto" value={nombre} onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Arroz 1 lb" className="input-field" ref={enfocarAlAparecer} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -295,7 +306,7 @@ function AddProductModal({
                   : 'Solo se va a poder cobrar en cantidades enteras.'}
               </p>
               <div>
-                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Categoría</label>
+                <label htmlFor="categoria-producto" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Categoría</label>
                 {categorias.length === 0 ? (
                   <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 text-warning text-xs flex items-center gap-2">
                     <Tag size={14} />
@@ -304,6 +315,7 @@ function AddProductModal({
                 ) : (
                   <div className="relative">
                     <select
+                      id="categoria-producto"
                       value={catId}
                       onChange={(e) => setCatId(e.target.value)}
                       className="input-field appearance-none pr-8"
@@ -340,13 +352,14 @@ function AddProductModal({
           <>
             <div className="space-y-3">
               <div>
-                <label className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre de la categoría</label>
+                <label htmlFor="nombre-categoria" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre de la categoría</label>
                 <input
+                  id="nombre-categoria"
                   value={catNombre}
                   onChange={(e) => { setCatNombre(e.target.value); setCatError(null) }}
                   placeholder="Ej: Granos básicos"
                   className="input-field"
-                  autoFocus
+                  ref={enfocarAlAparecer}
                 />
               </div>
               <div className="flex items-start gap-2 p-3 rounded-xl bg-brand/10 border border-brand/20">
@@ -463,19 +476,22 @@ export function Inventario({ onToast }: Readonly<Props>) {
       </div>
 
       {/* Lista */}
-      {error ? (
+      {error && (
         <div className="text-center py-12 space-y-3">
           <p className="text-white/40 text-sm">{error}</p>
           <button onClick={refetch} className="btn-ghost text-sm">Reintentar</button>
         </div>
-      ) : loading ? (
+      )}
+      {!error && loading && (
         <SkeletonList rows={6} />
-      ) : filtered.length === 0 ? (
+      )}
+      {!error && !loading && filtered.length === 0 && (
         <div className="text-center py-16">
           <Package size={36} className="text-white/15 mx-auto mb-3" />
           <p className="text-white/40 text-sm">No se encontraron productos</p>
         </div>
-      ) : (
+      )}
+      {!error && !loading && filtered.length > 0 && (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((p) => (
             <ProductoCard

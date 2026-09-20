@@ -57,7 +57,7 @@ export function permite(
     // `https://*.supabase.co` tiene que aceptar `https://algo.supabase.co`
     // pero no `https://supabase.co.atacante.com`.
     const patron = new RegExp(
-      `^${valor.split('*').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^./]+')}$`,
+      `^${valor.split('*').map((t) => t.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)).join('[^./]+')}$`,
     )
     return patron.test(origen)
   })

@@ -35,6 +35,13 @@ const SIGUIENTE: { estado: EstadoTicket; etiqueta: string; icono: typeof Clock }
   { estado: 'descartado', etiqueta: 'Descartar', icono: Ban         },
 ]
 
+/** Qué decir cuando la lista sale vacía, según el filtro elegido. */
+const VACIO: Record<Filtro, string> = {
+  abiertos:  'No hay errores sin atender. Todo funcionando.',
+  resueltos: 'Todavía no cerraste ninguno.',
+  todos:     'La app no ha registrado ningún error.',
+}
+
 const fechaHora = (iso: string) =>
   new Date(iso).toLocaleString('es-HN', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -156,6 +163,33 @@ export function Tickets({ onToast }: Readonly<Props>) {
     onToast(`Ticket ${ESTILO_ESTADO[estado].etiqueta.toLowerCase()}`, undefined, 'success')
   }
 
+  function contenido() {
+    if (error) {
+      return (
+        <div className="text-center py-12 space-y-3">
+          <AlertTriangle size={32} className="text-warning mx-auto" />
+          <p className="text-white/40 text-sm">{error}</p>
+        </div>
+      )
+    }
+    if (loading) return <SkeletonList rows={3} />
+    if (visibles.length === 0) {
+      return (
+        <div className="text-center py-16">
+          <ShieldCheck size={36} className="text-success/40 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">{VACIO[filtro]}</p>
+        </div>
+      )
+    }
+    return (
+      <div className="grid gap-3">
+        {visibles.map((t) => (
+          <TicketCard key={t.id} ticket={t} onEstado={handleEstado} />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 max-w-5xl">
       <div className="flex items-start justify-between gap-3">
@@ -210,29 +244,7 @@ export function Tickets({ onToast }: Readonly<Props>) {
         ))}
       </div>
 
-      {error ? (
-        <div className="text-center py-12 space-y-3">
-          <AlertTriangle size={32} className="text-warning mx-auto" />
-          <p className="text-white/40 text-sm">{error}</p>
-        </div>
-      ) : loading ? (
-        <SkeletonList rows={3} />
-      ) : visibles.length === 0 ? (
-        <div className="text-center py-16">
-          <ShieldCheck size={36} className="text-success/40 mx-auto mb-3" />
-          <p className="text-white/40 text-sm">
-            {filtro === 'abiertos' ? 'No hay errores sin atender. Todo funcionando.'
-              : filtro === 'resueltos' ? 'Todavía no cerraste ninguno.'
-              : 'La app no ha registrado ningún error.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {visibles.map((t) => (
-            <TicketCard key={t.id} ticket={t} onEstado={handleEstado} />
-          ))}
-        </div>
-      )}
+      {contenido()}
     </div>
   )
 }

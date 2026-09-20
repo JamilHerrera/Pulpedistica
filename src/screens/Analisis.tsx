@@ -8,6 +8,13 @@ import { formatearCantidad } from '../lib/unidades'
 
 // ─── Tooltip del gráfico ───────────────────────────────────────────────────────
 
+/** Oro para el primero, plata para el segundo, apagado para el resto. */
+function colorDePuesto(indice: number): string {
+  if (indice === 0) return 'text-yellow-400'
+  if (indice === 1) return 'text-white/50'
+  return 'text-white/25'
+}
+
 function CustomTooltip({ active, payload, label }: Readonly<{
   active?: boolean; payload?: Array<{ value: number }>; label?: string
 }>) {
@@ -53,17 +60,19 @@ function TabEstadisticas() {
         ))}
       </div>
 
-      {error ? (
+      {error && (
         <div className="text-center py-12 space-y-3">
           <p className="text-white/40 text-sm">{error}</p>
           <button onClick={refetch} className="btn-ghost text-sm">Reintentar</button>
         </div>
-      ) : loading ? (
+      )}
+      {!error && loading && (
         <>
           <div className="skeleton h-44 w-full rounded-2xl" />
           <SkeletonStats />
         </>
-      ) : data ? (
+      )}
+      {!error && !loading && data && (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-3 gap-2">
@@ -103,8 +112,8 @@ function TabEstadisticas() {
                     tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
                   <Bar dataKey="monto" radius={[6, 6, 0, 0]}>
-                    {data.ventasDiarias.map((_, i) => (
-                      <Cell key={i}
+                    {data.ventasDiarias.map((d, i) => (
+                      <Cell key={d.dia ?? `dia-${i}`}
                         fill={i === data.ventasDiarias.length - 1
                           ? '#7C3AED'
                           : `rgba(124,58,237,${0.3 + (i / data.ventasDiarias.length) * 0.3})`}
@@ -129,7 +138,7 @@ function TabEstadisticas() {
                   const pct = (p.cantidad / max) * 100
                   return (
                     <div key={p.nombre} className="flex items-center gap-3">
-                      <span className={`text-xs font-bold w-4 ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-white/50' : 'text-white/25'}`}>
+                      <span className={`text-xs font-bold w-4 ${colorDePuesto(i)}`}>
                         {i + 1}
                       </span>
                       <div className="flex-1 min-w-0">
@@ -193,7 +202,7 @@ function TabEstadisticas() {
             </div>
           )}
         </>
-      ) : null}
+      )}
     </div>
   )
 }
@@ -224,11 +233,12 @@ function TabPedidos() {
     <div className="space-y-4">
       {/* Filtro por categoría (actúa como proveedor) */}
       <div>
-        <label className="text-white/40 text-xs uppercase tracking-wider mb-2 block">
+        <label htmlFor="filtro-categoria" className="text-white/40 text-xs uppercase tracking-wider mb-2 block">
           Filtrar por categoría / proveedor
         </label>
         <div className="relative">
           <select
+            id="filtro-categoria"
             value={categoriaFiltro}
             onChange={(e) => setCategoriaFiltro(e.target.value)}
             className="input-field appearance-none pr-8"
@@ -259,14 +269,16 @@ function TabPedidos() {
         </button>
       )}
 
-      {error ? (
+      {error && (
         <div className="text-center py-12">
           <p className="text-white/40 text-sm">{error}</p>
           <button onClick={refetch} className="btn-ghost text-sm mt-3">Reintentar</button>
         </div>
-      ) : loading ? (
+      )}
+      {!error && loading && (
         <SkeletonList rows={5} />
-      ) : (
+      )}
+      {!error && !loading && (
         <>
           {/* Productos que necesitan pedido */}
           {necesitanPedido.length > 0 && (

@@ -129,14 +129,16 @@ export function Usuarios({ onToast }: Readonly<Props>) {
         </p>
       </div>
 
-      {error ? (
+      {error && (
         <div className="text-center py-12 space-y-3">
           <AlertTriangle size={32} className="text-warning mx-auto" />
           <p className="text-white/40 text-sm">{error}</p>
         </div>
-      ) : loading ? (
+      )}
+      {!error && loading && (
         <SkeletonList rows={3} />
-      ) : (
+      )}
+      {!error && !loading && (
         <>
           <div className="space-y-3">
             <div className="flex items-center gap-2">

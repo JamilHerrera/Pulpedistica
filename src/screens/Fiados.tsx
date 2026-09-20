@@ -9,6 +9,13 @@ import type { Cliente, Fiado } from '../types'
 
 type Filtro = 'pendientes' | 'pagados' | 'todos'
 
+/** Qué decir cuando la lista sale vacía, según el filtro elegido. */
+const VACIO: Record<Filtro, string> = {
+  pendientes: 'No hay fiados pendientes.',
+  pagados:    'Todavía no hay fiados saldados.',
+  todos:      'Aún no registraste ningún fiado.',
+}
+
 interface Props {
   onToast: (t: string, m?: string, type?: 'success' | 'error' | 'warning' | 'info') => void
 }
@@ -20,6 +27,17 @@ const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString('es-HN', { day: 'numeric', month: 'short', year: 'numeric' })
 
 // ─── Modal: registrar un fiado ───────────────────────────────────────────────
+
+/**
+ * Enfoca el campo apenas aparece.
+ *
+ * Reemplaza a `autoFocus`, que está desaconsejado porque roba el foco al
+ * cargar una página. Acá el campo aparece dentro de un modal que la persona
+ * acaba de abrir a propósito, así que enfocarlo es lo que espera: es la
+ * diferencia entre escribir de una o tener que tocar el campo primero, con la
+ * fila esperando. Al ser una referencia estable, React la invoca una sola vez.
+ */
+const enfocarAlAparecer = (el: HTMLInputElement | null) => el?.focus()
 
 function NuevoFiadoModal({
   clientes, onClose, onCrearCliente, onRegistrar,
@@ -135,7 +153,7 @@ function NuevoFiadoModal({
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ej: María López"
                 className="input-field"
-                autoFocus
+                ref={enfocarAlAparecer}
               />
             </div>
             <div className="space-y-1.5">
@@ -309,6 +327,45 @@ export function Fiados({ onToast }: Readonly<Props>) {
     else onToast('No se pudo eliminar', 'Revisá tu conexión', 'error')
   }
 
+  function contenido() {
+    if (error) {
+      return (
+        <div className="text-center py-12 space-y-3">
+          <AlertTriangle size={32} className="text-warning mx-auto" />
+          <p className="text-white/40 text-sm">{error}</p>
+        </div>
+      )
+    }
+    if (loading) return <SkeletonList rows={4} />
+    if (visibles.length === 0) {
+      const SinDatos = clientes.length === 0 ? Users : HandCoins
+      return (
+        <div className="text-center py-16">
+          <SinDatos size={36} className="text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">{VACIO[filtro]}</p>
+          {clientes.length === 0 && (
+            <button onClick={() => setShowNuevo(true)} className="mt-4 btn-primary text-sm py-2.5 px-5 inline-flex items-center gap-2">
+              <UserPlus size={15} /> Registrar el primero
+            </button>
+          )}
+        </div>
+      )
+    }
+    return (
+      <div className="grid gap-3 lg:grid-cols-2">
+        {visibles.map((f) => (
+          <FiadoCard
+            key={f.id}
+            fiado={f}
+            esAdmin={esAdmin}
+            onTogglePagado={handleToggle}
+            onEliminar={setPorEliminar}
+          />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 max-w-5xl">
       {/* Header */}
@@ -365,41 +422,7 @@ export function Fiados({ onToast }: Readonly<Props>) {
       </div>
 
       {/* Lista */}
-      {error ? (
-        <div className="text-center py-12 space-y-3">
-          <AlertTriangle size={32} className="text-warning mx-auto" />
-          <p className="text-white/40 text-sm">{error}</p>
-        </div>
-      ) : loading ? (
-        <SkeletonList rows={4} />
-      ) : visibles.length === 0 ? (
-        <div className="text-center py-16">
-          {clientes.length === 0 ? <Users size={36} className="text-white/15 mx-auto mb-3" />
-                                 : <HandCoins size={36} className="text-white/15 mx-auto mb-3" />}
-          <p className="text-white/40 text-sm">
-            {filtro === 'pendientes' ? 'No hay fiados pendientes.'
-              : filtro === 'pagados' ? 'Todavía no hay fiados saldados.'
-              : 'Aún no registraste ningún fiado.'}
-          </p>
-          {clientes.length === 0 && (
-            <button onClick={() => setShowNuevo(true)} className="mt-4 btn-primary text-sm py-2.5 px-5 inline-flex items-center gap-2">
-              <UserPlus size={15} /> Registrar el primero
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {visibles.map((f) => (
-            <FiadoCard
-              key={f.id}
-              fiado={f}
-              esAdmin={esAdmin}
-              onTogglePagado={handleToggle}
-              onEliminar={setPorEliminar}
-            />
-          ))}
-        </div>
-      )}
+      {contenido()}
 
       {showNuevo && (
         <NuevoFiadoModal

@@ -20,11 +20,27 @@ interface Props {
 
 // ─── Modal de productos estancados ────────────────────────────────────────────
 
+/** Cuanto más tiempo lleva sin venderse, más grave se ve. */
+function colorDeEstancamiento(diasSinVenta: number): string {
+  if (diasSinVenta >= 999) return 'text-danger'
+  if (diasSinVenta >= 30) return 'text-orange-400'
+  return 'text-warning'
+}
+
+/** Oro para el primero, plata para el segundo, apagado para el resto. */
+function fondoDePuesto(indice: number): string {
+  if (indice === 0) return 'bg-yellow-500/20 text-yellow-400'
+  if (indice === 1) return 'bg-white/10 text-white/60'
+  return 'bg-white/5 text-white/40'
+}
+
 function EstancadosModal({
   estancados, onClose,
 }: Readonly<{ estancados: ProductoEstancado[]; onClose: () => void }>) {
-  const formatDias = (d: number) =>
-    d >= 999 ? 'Nunca vendido' : `${d} día${d !== 1 ? 's' : ''} sin venta`
+  const formatDias = (d: number) => {
+    if (d >= 999) return 'Nunca vendido'
+    return `${d} ${d === 1 ? 'día' : 'días'} sin venta`
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
@@ -55,8 +71,7 @@ function EstancadosModal({
         {/* Lista */}
         <div className="overflow-y-auto flex-1 px-5 py-3 space-y-2">
           {estancados.map((p) => {
-            const critico = p.diasSinVenta >= 30 || p.diasSinVenta >= 999
-            const color   = p.diasSinVenta >= 999 ? 'text-danger' : critico ? 'text-orange-400' : 'text-warning'
+            const color = colorDeEstancamiento(p.diasSinVenta)
             return (
               <div key={p.id} className="glass-card p-3 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
@@ -291,7 +306,7 @@ function MiniBarChart({ values }: Readonly<{ values: number[] }>) {
         const dayIdx = (today - (6 - i) + 7) % 7
         const isToday = i === 6
         return (
-          <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
+          <div key={DAYS[dayIdx]} className="flex-1 h-full flex flex-col items-center justify-end gap-1">
             <div
               className={`w-full rounded-sm transition-all duration-500 ${
                 isToday ? 'bg-brand-light' : 'bg-white/15'
@@ -359,13 +374,14 @@ export function Dashboard({ onNavigate, onToast }: Readonly<Props>) {
         </button>
       </div>
 
-      {loading ? (
+      {loading && (
         <>
           <div className="skeleton h-40 w-full rounded-3xl" />
           <SkeletonStats />
           <SkeletonList rows={3} />
         </>
-      ) : stats ? (
+      )}
+      {!loading && stats && (
         <>
           {/* Fila principal: ingresos + métricas */}
           <div className="grid gap-4 lg:grid-cols-3">
@@ -472,11 +488,7 @@ export function Dashboard({ onNavigate, onToast }: Readonly<Props>) {
               <div className="flex flex-col gap-2">
                 {stats.topProductos.slice(0, 4).map((p, i) => (
                   <div key={p.nombre} className="glass-card px-4 py-3 flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-                      i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                      i === 1 ? 'bg-white/10 text-white/60' :
-                      'bg-white/5 text-white/40'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${fondoDePuesto(i)}`}>
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -571,7 +583,7 @@ export function Dashboard({ onNavigate, onToast }: Readonly<Props>) {
             </div>
           )}
         </>
-      ) : null}
+      )}
 
       {/* Modal de anulación */}
       {ventaParaAnular && (

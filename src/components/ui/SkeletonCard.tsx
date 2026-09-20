@@ -7,8 +7,8 @@ export function SkeletonCard({ className = '' }: Readonly<{ className?: string }
 export function SkeletonList({ rows = 4 }: Readonly<{ rows?: number }>) {
   return (
     <div className="flex flex-col gap-3">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="glass-card p-4 flex gap-3 items-center">
+      {Array.from({ length: rows }, (_, i) => `fila-${i}`).map((clave) => (
+        <div key={clave} className="glass-card p-4 flex gap-3 items-center">
           <div className="skeleton w-10 h-10 rounded-xl" />
           <div className="flex-1 flex flex-col gap-2">
             <div className="skeleton h-4 w-3/4 rounded-lg" />

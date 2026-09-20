@@ -22,7 +22,10 @@ import type { Screen, ToastMessage, ToastType } from './types'
 
 let toastCounter = 0
 
-const PANTALLAS: Screen[] = ['dashboard', 'semaforo', 'venta', 'fiados', 'inventario', 'analisis', 'usuarios', 'comentarios', 'tickets']
+const PANTALLAS = new Set<Screen>([
+  'dashboard', 'semaforo', 'venta', 'fiados', 'inventario', 'analisis',
+  'usuarios', 'comentarios', 'tickets',
+])
 
 /**
  * Pantalla inicial según `?pantalla=` de la URL.
@@ -33,7 +36,7 @@ const PANTALLAS: Screen[] = ['dashboard', 'semaforo', 'venta', 'fiados', 'invent
  */
 function pantallaInicial(): Screen {
   const pedida = new URLSearchParams(window.location.search).get('pantalla')
-  return PANTALLAS.includes(pedida as Screen) ? (pedida as Screen) : 'dashboard'
+  return PANTALLAS.has(pedida as Screen) ? (pedida as Screen) : 'dashboard'
 }
 
 export default function AdminApp() {

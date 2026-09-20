@@ -122,7 +122,7 @@ export function useEquipo() {
       try {
         const { data: sesion } = await supabase.auth.getUser()
         // Código corto y legible: se dicta en voz alta o se manda por mensaje.
-        const codigo = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
+        const codigo = crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()
 
         const { error: err } = await supabase.from('invitaciones').insert({
           codigo,

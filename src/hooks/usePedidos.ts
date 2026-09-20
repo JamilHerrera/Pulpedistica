@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Categoria } from '../types'
-import type { UnidadMedida } from '../types'
+import type { Categoria, UnidadMedida } from '../types'
 
 export interface ProductoPedido {
   id: string

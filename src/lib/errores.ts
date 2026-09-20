@@ -89,8 +89,8 @@ export function normalizarMensaje(mensaje: string): string {
  */
 function fnv1a(texto: string, semilla: number): string {
   let h = semilla
-  for (let i = 0; i < texto.length; i++) {
-    h ^= texto.charCodeAt(i)
+  for (const caracter of texto) {
+    h ^= caracter.codePointAt(0) ?? 0
     h = Math.imul(h, 0x01000193) >>> 0
   }
   return h.toString(16).padStart(8, '0')
@@ -168,7 +168,7 @@ export function describir(valor: unknown): string {
     // `code`. El código es lo que identifica la falla, así que va al frente.
     const o = valor as Record<string, unknown>
     const partes = [o.code, o.message ?? o.error_description ?? o.error, o.details]
-      .filter((p) => typeof p === 'string' && p.length > 0)
+      .filter((p): p is string => typeof p === 'string' && p.length > 0)
     if (partes.length > 0) return partes.join(': ')
     try {
       return JSON.stringify(valor)

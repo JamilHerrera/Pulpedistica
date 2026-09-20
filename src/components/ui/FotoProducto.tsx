@@ -30,7 +30,7 @@ const TONOS = [
 
 function tonoDe(nombre: string): string {
   let suma = 0
-  for (let i = 0; i < nombre.length; i++) suma += nombre.charCodeAt(i)
+  for (const caracter of nombre) suma += caracter.codePointAt(0) ?? 0
   return TONOS[suma % TONOS.length]
 }
 

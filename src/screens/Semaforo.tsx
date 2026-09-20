@@ -5,6 +5,26 @@ import { etiquetaUmbral } from '../lib/semaforo'
 import type { GrupoRotacion, NivelRotacion, ProductoConRotacion } from '../hooks/useSemaforo'
 import { formatearCantidad } from '../lib/unidades'
 
+/**
+ * Elige el acumulado que corresponde al periodo.
+ *
+ * Recibe los tres valores sueltos en vez del objeto: la pantalla muestra lo
+ * mismo para un producto y para el total general, y sus campos se llaman
+ * distinto. Pasarlos explícitos evita un tipo unión y un cast.
+ */
+function porPeriodo(periodo: 7 | 15 | 30, d7: number, d15: number, d30: number): number {
+  if (periodo === 7) return d7
+  if (periodo === 15) return d15
+  return d30
+}
+
+/** Color de la barra de existencias. Agotado manda sobre "poco". */
+function colorDeStock(stock: number): string {
+  if (stock === 0) return 'bg-danger'
+  if (stock <= 5) return 'bg-warning'
+  return 'bg-white/25'
+}
+
 function LoadingSpinner() {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -67,12 +87,10 @@ const NIVEL_CONFIG: Record<NivelRotacion, {
 function ProductRow({
   producto, periodo,
 }: Readonly<{ producto: ProductoConRotacion; periodo: 7 | 15 | 30 }>) {
-  const unidades  = periodo === 7 ? producto.unidades7d : periodo === 15 ? producto.unidades15d : producto.unidades30d
+  const unidades  = porPeriodo(periodo, producto.unidades7d, producto.unidades15d, producto.unidades30d)
   const stockMax  = Math.max(30, producto.stock_actual)
   const stockPct  = Math.min(100, (producto.stock_actual / stockMax) * 100)
-  const stockColor = producto.stock_actual === 0
-    ? 'bg-danger' : producto.stock_actual <= 5
-    ? 'bg-warning' : 'bg-white/25'
+  const stockColor = colorDeStock(producto.stock_actual)
 
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
@@ -184,6 +202,31 @@ export function Semaforo() {
     { alta: 0, media: 0, baja: 0 },
   )
 
+  function contenido() {
+    if (error) {
+      return (
+        <div className="text-center py-12 space-y-3">
+          <WifiOff size={36} className="text-white/20 mx-auto" />
+          <p className="text-white/40 text-sm">{error}</p>
+          <button onClick={refetch} className="btn-ghost text-sm">Reintentar</button>
+        </div>
+      )
+    }
+    if (loading) return <LoadingSpinner />
+    return (
+      <div className="space-y-3">
+        {grupos.map((grupo, i) => (
+          <GrupoCard
+            key={grupo.nivel}
+            grupo={grupo}
+            periodo={periodo}
+            defaultOpen={i === 0 && grupo.productos.length > 0}
+          />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 max-w-5xl">
 
@@ -248,7 +291,7 @@ export function Semaforo() {
         <div className="glass-card p-3 flex justify-between items-center">
           <div className="text-center flex-1">
             <p className="text-white font-black text-lg">
-              {periodo === 7 ? totales.vendidos7d : periodo === 15 ? totales.vendidos15d : totales.vendidos30d}
+              {porPeriodo(periodo, totales.vendidos7d, totales.vendidos15d, totales.vendidos30d)}
             </p>
             <p className="text-white/35 text-[11px]">uds vendidas ({periodo}d)</p>
           </div>
@@ -285,26 +328,7 @@ export function Semaforo() {
       </div>
 
       {/* Contenido principal */}
-      {error ? (
-        <div className="text-center py-12 space-y-3">
-          <WifiOff size={36} className="text-white/20 mx-auto" />
-          <p className="text-white/40 text-sm">{error}</p>
-          <button onClick={refetch} className="btn-ghost text-sm">Reintentar</button>
-        </div>
-      ) : loading ? (
-        <LoadingSpinner />
-      ) : (
-        <div className="space-y-3">
-          {grupos.map((grupo, i) => (
-            <GrupoCard
-              key={grupo.nivel}
-              grupo={grupo}
-              periodo={periodo}
-              defaultOpen={i === 0 && grupo.productos.length > 0}
-            />
-          ))}
-        </div>
-      )}
+      {contenido()}
 
       {/* Indicador en tiempo real */}
       <div className="flex items-center justify-center gap-2 pt-2">
