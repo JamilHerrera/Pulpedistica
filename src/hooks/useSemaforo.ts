@@ -3,10 +3,14 @@ import { supabase } from '../lib/supabase'
 import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import { calcularNivel, ORDEN_NIVELES, type NivelRotacion } from '../lib/semaforo'
+import {
+  diasDeCobertura, estadoCobertura, cantidadParaCubrir, ORDEN_COBERTURA,
+  type EstadoCobertura,
+} from '../lib/cobertura'
 import type { UnidadMedida } from '../types'
 import { agruparLlamadas } from '../lib/agrupar'
 
-export type { NivelRotacion }
+export type { NivelRotacion, EstadoCobertura }
 
 export interface ProductoConRotacion {
   id: string
@@ -21,6 +25,16 @@ export interface ProductoConRotacion {
   unidades15d: number
   unidades30d: number
   rotacion: NivelRotacion
+  /** Días que alcanza el stock al ritmo del período. `null` si no hubo ventas. */
+  cobertura: number | null
+  estadoCobertura: EstadoCobertura
+  /** Cuánto pedir para cubrir un mes. Cero si ya alcanza o si no se vende. */
+  sugerido: number
+}
+
+export interface GrupoCobertura {
+  estado: EstadoCobertura
+  productos: ProductoConRotacion[]
 }
 
 export interface GrupoRotacion {
@@ -40,6 +54,7 @@ export interface TotalesSemaforo {
 export function useSemaforo() {
   const [periodo, setPeriodo] = useState<7 | 15 | 30>(30)
   const [grupos, setGrupos] = useState<GrupoRotacion[]>([])
+  const [gruposCobertura, setGruposCobertura] = useState<GrupoCobertura[]>([])
   const [totales, setTotales] = useState<TotalesSemaforo>({ productos: 0, vendidos7d: 0, vendidos15d: 0, vendidos30d: 0, sinMovimiento: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,6 +114,10 @@ export function useSemaforo() {
           unidades15d:  u15,
           unidades30d:  u30,
           rotacion:     calcularNivel(unidadesPeriodo(p.id), periodo),
+          // El mismo ritmo de ventas que la rotación, cruzado con el stock.
+          cobertura:       diasDeCobertura(p.stock_actual, unidadesPeriodo(p.id), periodo),
+          estadoCobertura: estadoCobertura(p.stock_actual, unidadesPeriodo(p.id), periodo),
+          sugerido:        cantidadParaCubrir(p.stock_actual, unidadesPeriodo(p.id), periodo),
         }
       })
 
@@ -113,8 +132,19 @@ export function useSemaforo() {
         }
       })
 
+      // Cada grupo se ordena por lo que pide la acción: lo que se acaba antes
+      // primero; lo que más sobra primero; lo quieto, por cuánto hay parado.
+      const nuevosCobertura: GrupoCobertura[] = ORDEN_COBERTURA.map((estado) => {
+        const prods = allProds.filter((p) => p.estadoCobertura === estado)
+        if (estado === 'exceso') prods.sort((a, b) => (b.cobertura ?? 0) - (a.cobertura ?? 0))
+        else if (estado === 'quieto') prods.sort((a, b) => b.stock_actual - a.stock_actual)
+        else prods.sort((a, b) => (a.cobertura ?? 0) - (b.cobertura ?? 0))
+        return { estado, productos: prods }
+      })
+
       const sinMov = allProds.filter((p) => unidadesPeriodo(p.id) === 0).length
       setGrupos(nuevosGrupos)
+      setGruposCobertura(nuevosCobertura)
       setTotales({
         productos:     allProds.length,
         vendidos7d:    Array.from(map7d.values()).reduce((s, v) => s + v, 0),
@@ -165,5 +195,5 @@ export function useSemaforo() {
     }
   }, [])
 
-  return { grupos, totales, loading, error, lastUpdate, periodo, setPeriodo, refetch: fetchData } as const
+  return { grupos, gruposCobertura, totales, loading, error, lastUpdate, periodo, setPeriodo, refetch: fetchData } as const
 }
