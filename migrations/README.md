@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015 → 016
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -42,6 +42,7 @@ order by version;
 | 013 | `013_tickets_de_errores.sql` | La app abre tickets sola cuando algo falla, uno por problema |
 | 014 | `014_unidades_y_fotos.sql` | Venta por peso con cantidades decimales, y fotos de producto |
 | 015 | `015_no_vender_sin_stock.sql` | La venta se rechaza si no alcanza el stock, en vez de toparse en cero |
+| 016 | `016_sin_categorias_de_rotacion.sql` | Deja de sembrar categorías de rotación: el semáforo se calcula solo |
 
 ## Notas
 
@@ -70,3 +71,11 @@ order by version;
   una etiqueta `<img>` pide la foto sin mandar la sesión. Lo que se protege es
   la escritura: las políticas exigen que el primer tramo de la ruta sea el
   negocio de quien sube, así que ninguna pulpería puede pisar las fotos de otra.
+- **016 corrige un error de diseño de la 010.** Cada negocio nuevo nacía con
+  tres categorías —"Alta Rotación", "Rotación Media", "Baja Rotación"— de un
+  diseño anterior donde la rotación se elegía a mano al cargar el producto.
+  Ese diseño quedó reemplazado por el cálculo automático de `lib/semaforo.ts`
+  (por ventas reales, no por categoría), pero la siembra se quedó pegada y
+  terminaba contradiciendo al semáforo real. Identifica las categorías por
+  nombre exacto: un negocio que hubiera renombrado una a propósito no la
+  pierde, porque ya no coincide con el nombre que puso el disparador.
