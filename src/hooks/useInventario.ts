@@ -6,6 +6,7 @@ import {
   DEPOSITO, motivoDeRechazo, reducirImagen, rutaDeFoto, rutaDesdeUrl,
 } from '../lib/imagenes'
 import type { Producto, Categoria, UnidadMedida } from '../types'
+import { agruparLlamadas } from '../lib/agrupar'
 
 export function useInventario() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -40,11 +41,19 @@ export function useInventario() {
 
   useEffect(() => {
     fetchData()
+    // Cada venta actualiza el stock de cada producto que lleva: una venta de
+    // cinco productos son cinco avisos. Se agrupan en una sola recarga, y se
+    // invalida antes para no recibir lo que ya estaba en caché.
+    const refresco = agruparLlamadas(() => {
+      invalidar('inventario')
+      fetchData()
+    }, 800, 3000)
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, refresco.disparar)
       .subscribe()
     return () => {
+      refresco.cancelar()
       channel.unsubscribe()
       supabase.removeChannel(channel)
     }

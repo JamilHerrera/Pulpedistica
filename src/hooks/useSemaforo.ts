@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { nombreDeCanal } from '../lib/canal'
-import { consultaCacheada, TTL } from '../lib/cache'
+import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import { calcularNivel, ORDEN_NIVELES, type NivelRotacion } from '../lib/semaforo'
 import type { UnidadMedida } from '../types'
+import { agruparLlamadas } from '../lib/agrupar'
 
 export type { NivelRotacion }
 
@@ -50,39 +51,29 @@ export function useSemaforo() {
   const fetchData = useCallback(async () => {
     try {
       setError(null)
-      const now    = Date.now()
-      const desde30d = new Date(now - 30 * 86_400_000).toISOString()
-      const desde15d = new Date(now - 15 * 86_400_000).toISOString()
-      const desde7d  = new Date(now -  7 * 86_400_000).toISOString()
-
-      const [prodRes, ventasRes] = await consultaCacheada(`semaforo:${periodo}`, () => Promise.all([
+      // La base devuelve una fila por producto con lo vendido en 7/15/30 días
+      // (migración 017). Antes se bajaban todas las ventas del mes con sus
+      // líneas para sumarlas acá, y la API corta en 1000 filas sin avisar:
+      // una pulpería con más de 1000 ventas al mes veía la rotación mal.
+      const [prodRes, rotRes] = await consultaCacheada(`semaforo:${periodo}`, () => Promise.all([
         supabase
           .from('productos')
           .select('id, nombre, stock_actual, unidad, imagen_url, categoria_id, categorias(id, nombre)')
           .order('nombre'),
-        supabase
-          .from('ventas')
-          .select('fecha_hora, detalle_ventas(producto_id, cantidad)')
-          .gte('fecha_hora', desde30d)
-          .eq('anulada', false),
+        supabase.rpc('rotacion_productos'),
       ]), TTL.corto)
 
-      if (prodRes.error)   throw prodRes.error
-      if (ventasRes.error) throw ventasRes.error
+      if (prodRes.error) throw prodRes.error
+      if (rotRes.error)  throw rotRes.error
 
       const map7d  = new Map<string, number>()
       const map15d = new Map<string, number>()
       const map30d = new Map<string, number>()
-
-      ;(ventasRes.data ?? []).forEach((v: any) => {
-        ;(v.detalle_ventas ?? []).forEach((dv: any) => {
-          const pid = dv.producto_id as string
-          const qty = Number(dv.cantidad) || 0
-          map30d.set(pid, (map30d.get(pid) ?? 0) + qty)
-          if (v.fecha_hora >= desde15d) map15d.set(pid, (map15d.get(pid) ?? 0) + qty)
-          if (v.fecha_hora >= desde7d)  map7d.set(pid,  (map7d.get(pid)  ?? 0) + qty)
-        })
-      })
+      for (const r of (rotRes.data ?? []) as { producto_id: string; u7: number; u15: number; u30: number }[]) {
+        map7d.set(r.producto_id,  Number(r.u7))
+        map15d.set(r.producto_id, Number(r.u15))
+        map30d.set(r.producto_id, Number(r.u30))
+      }
 
       const unidadesPeriodo = (pid: string) => {
         if (periodo === 7)  return map7d.get(pid)  ?? 0
@@ -98,6 +89,10 @@ export function useSemaforo() {
           id:           p.id,
           nombre:       p.nombre,
           stock_actual: p.stock_actual,
+          // Sin esto la pantalla mostraba el stock sin la unidad ("2.5" en vez
+          // de "2.5 lb"): la consulta la traía pero se perdía acá.
+          unidad:       p.unidad,
+          imagen_url:   p.imagen_url,
           categoria_id: p.categoria_id,
           categorias:   p.categorias,
           unidades7d:   u7,
@@ -149,14 +144,22 @@ export function useSemaforo() {
 
   // Suscripción en tiempo real (solo se crea una vez)
   useEffect(() => {
+    // Hay que invalidar ANTES de recargar: sin eso la recarga devolvía lo que
+    // ya estaba en caché, y el tiempo real no mostraba nada nuevo hasta que
+    // la caché vencía sola. Y agrupado, para que una ráfaga de ventas
+    // produzca una recarga y no una por evento.
+    const refresco = agruparLlamadas(() => {
+      invalidar('semaforo')
+      fetchDataRef.current()
+    }, 800, 3000)
+
+    // Solo `ventas`: el detalle viaja en la misma transacción que su venta.
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' },
-        () => fetchDataRef.current())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'detalle_ventas' },
-        () => fetchDataRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, refresco.disparar)
       .subscribe()
     return () => {
+      refresco.cancelar()
       channel.unsubscribe()
       supabase.removeChannel(channel)
     }

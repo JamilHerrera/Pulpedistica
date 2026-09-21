@@ -10,7 +10,7 @@ En Supabase → **SQL Editor** → **New query**, pegar el contenido de cada
 archivo **en orden numérico** y darle *Run*.
 
 ```
-000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015 → 016
+000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → 011 → 012 → 013 → 014 → 015 → 016 → 017
 ```
 
 Cada migración anota su versión en `public.schema_migrations`. Para ver qué
@@ -43,6 +43,7 @@ order by version;
 | 014 | `014_unidades_y_fotos.sql` | Venta por peso con cantidades decimales, y fotos de producto |
 | 015 | `015_no_vender_sin_stock.sql` | La venta se rechaza si no alcanza el stock, en vez de toparse en cero |
 | 016 | `016_sin_categorias_de_rotacion.sql` | Deja de sembrar categorías de rotación: el semáforo se calcula solo |
+| 017 | `017_rendimiento_bajo_carga.sql` | Totales calculados en la base: dejan de cortarse en 1000 filas |
 
 ## Notas
 
@@ -79,3 +80,14 @@ order by version;
   terminaba contradiciendo al semáforo real. Identifica las categorías por
   nombre exacto: un negocio que hubiera renombrado una a propósito no la
   pierde, porque ya no coincide con el nombre que puso el disparador.
+- **017 existe porque la API corta en 1000 filas sin avisar.** Una prueba de
+  carga lo mostró: con 1161 líneas de venta en el mes, Análisis recibía 1000
+  y mostraba un 14% menos de ingresos, sin error. Las pantallas ya no bajan
+  filas crudas para sumarlas en el navegador; piden a funciones de la base
+  (`ventas_por_dia`, `top_productos`, `ventas_por_categoria`,
+  `rotacion_productos`) que devuelven totales. Son SECURITY INVOKER, así que
+  RLS sigue filtrando por negocio sin repetir el filtro a mano.
+- **017 también reescribe las políticas con ALTER POLICY**, envolviendo
+  `mi_negocio()` y compañía en un subselect para que se evalúen una vez por
+  consulta y no una vez por fila. Solo cambia las expresiones: nombre,
+  operación, roles y permisividad quedan idénticos. Es reejecutable.

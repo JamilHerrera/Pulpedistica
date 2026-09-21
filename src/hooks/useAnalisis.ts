@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { consultaCacheada, TTL } from '../lib/cache'
+import { claveDia, ultimosDias } from '../lib/fechas'
 
 export interface VentaDiaria { dia: string; monto: number; ventas: number }
 export interface TopProducto { nombre: string; cantidad: number; subtotal: number }
@@ -25,77 +26,60 @@ export function useAnalisis() {
     try {
       setError(null)
       setLoading(true)
-      const desde = new Date()
-      desde.setDate(desde.getDate() - (periodo - 1))
-      desde.setHours(0, 0, 0, 0)
+      const dias = ultimosDias(periodo)
+      const desde = dias[0].toISOString()
 
-      const [ventasRes, detallesRes] = await consultaCacheada(`analisis:${periodo}`, () => Promise.all([
-        supabase
-          .from('ventas')
-          .select('id, fecha_hora, monto_total')
-          .gte('fecha_hora', desde.toISOString())
-          .eq('anulada', false)
-          .order('fecha_hora', { ascending: true }),
-
-        supabase
-          .from('detalle_ventas')
-          .select('cantidad, subtotal, productos(id, nombre, categorias(nombre, color_semaforo)), ventas!inner(fecha_hora, anulada)')
-          .gte('ventas.fecha_hora', desde.toISOString())
-          .eq('ventas.anulada', false),
+      // Tres consultas que devuelven filas YA SUMADAS por la base (migración
+      // 017). Antes se bajaban todas las líneas de venta para sumarlas acá, y
+      // la API corta en 1000 filas sin avisar: con más ventas que eso los
+      // ingresos salían mal en silencio.
+      const [porDiaRes, topRes, catRes] = await consultaCacheada(`analisis:${periodo}`, () => Promise.all([
+        supabase.rpc('ventas_por_dia', { p_desde: desde }),
+        supabase.rpc('top_productos', { p_desde: desde, p_limite: 8 }),
+        supabase.rpc('ventas_por_categoria', { p_desde: desde }),
       ]), TTL.corto)
 
-      const ventas = ventasRes.data ?? []
-      const detalles = (detallesRes.data ?? []) as unknown as Array<{
-        cantidad: number
-        subtotal: number
-        productos: { id: string; nombre: string; categorias: { nombre: string; color_semaforo: string } | null } | null
-      }>
+      if (porDiaRes.error) throw porDiaRes.error
+      if (topRes.error) throw topRes.error
+      if (catRes.error) throw catRes.error
 
-      const diasMap = new Map<string, VentaDiaria>()
-      for (let i = 0; i < periodo; i++) {
-        const d = new Date()
-        d.setDate(d.getDate() - (periodo - 1 - i))
-        const key = d.toLocaleDateString('es-HN', { weekday: 'short', day: 'numeric' })
-        diasMap.set(d.toISOString().split('T')[0], { dia: key, monto: 0, ventas: 0 })
+      const porDia = new Map<string, { monto: number; ventas: number }>()
+      for (const f of (porDiaRes.data ?? []) as { dia: string; monto: number; ventas: number }[]) {
+        porDia.set(f.dia, { monto: Number(f.monto), ventas: Number(f.ventas) })
       }
-      ventas.forEach((v) => {
-        const key = v.fecha_hora.split('T')[0]
-        if (diasMap.has(key)) {
-          const d = diasMap.get(key)!
-          d.monto += v.monto_total ?? 0
-          d.ventas++
+
+      // El esqueleto de días se arma igual, para que un día sin ventas
+      // aparezca en cero en vez de desaparecer del gráfico.
+      const ventasDiarias: VentaDiaria[] = dias.map((d) => {
+        const fila = porDia.get(claveDia(d))
+        return {
+          dia: d.toLocaleDateString('es-HN', { weekday: 'short', day: 'numeric' }),
+          monto: fila?.monto ?? 0,
+          ventas: fila?.ventas ?? 0,
         }
       })
 
-      const productoMap = new Map<string, TopProducto>()
-      const catMap = new Map<string, { nombre: string; color: string; totalVentas: number }>()
+      const topProductos: TopProducto[] = ((topRes.data ?? []) as { nombre: string; cantidad: number; subtotal: number }[])
+        .map((t) => ({ nombre: t.nombre, cantidad: Number(t.cantidad), subtotal: Number(t.subtotal) }))
 
-      detalles.forEach((d) => {
-        const nombre = d.productos?.nombre ?? 'Desconocido'
-        const prev = productoMap.get(nombre) ?? { nombre, cantidad: 0, subtotal: 0 }
-        productoMap.set(nombre, { nombre, cantidad: prev.cantidad + d.cantidad, subtotal: prev.subtotal + d.subtotal })
+      const cats = ((catRes.data ?? []) as { nombre: string; color: string; total: number }[])
+        .map((c) => ({ nombre: c.nombre, color: c.color, totalVentas: Number(c.total) }))
+      const totalCat = cats.reduce((s, c) => s + c.totalVentas, 0)
+      const categoriaStats: CategoriaStats[] = cats.map((c) => ({
+        ...c,
+        porcentaje: totalCat > 0 ? (c.totalVentas / totalCat) * 100 : 0,
+      }))
 
-        const catNombre = d.productos?.categorias?.nombre ?? 'Sin categoría'
-        const catColor = d.productos?.categorias?.color_semaforo ?? 'gris'
-        const prevCat = catMap.get(catNombre) ?? { nombre: catNombre, color: catColor, totalVentas: 0 }
-        catMap.set(catNombre, { ...prevCat, totalVentas: prevCat.totalVentas + d.subtotal })
-      })
-
-      const totalVentasCat = Array.from(catMap.values()).reduce((s, c) => s + c.totalVentas, 0)
-      const categoriaStats: CategoriaStats[] = Array.from(catMap.values())
-        .map((c) => ({ ...c, porcentaje: totalVentasCat > 0 ? (c.totalVentas / totalVentasCat) * 100 : 0 }))
-        .sort((a, b) => b.totalVentas - a.totalVentas)
-
-      const totalSemana = ventas.reduce((s, v) => s + (v.monto_total ?? 0), 0)
-      const promedioVenta = ventas.length > 0 ? totalSemana / ventas.length : 0
+      const totalSemana = ventasDiarias.reduce((s, d) => s + d.monto, 0)
+      const totalVentas = ventasDiarias.reduce((s, d) => s + d.ventas, 0)
 
       setData({
-        ventasDiarias: Array.from(diasMap.values()),
-        topProductos: Array.from(productoMap.values()).sort((a, b) => b.cantidad - a.cantidad).slice(0, 8),
+        ventasDiarias,
+        topProductos,
         categoriaStats,
         totalSemana,
-        promedioVenta,
-        totalVentas: ventas.length,
+        promedioVenta: totalVentas > 0 ? totalSemana / totalVentas : 0,
+        totalVentas,
       })
     } catch (e) {
       setError('Error cargando análisis')

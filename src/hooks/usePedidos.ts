@@ -27,8 +27,6 @@ export function usePedidos() {
     try {
       setError(null)
       setLoading(true)
-      const desde7d = new Date(Date.now() - 7 * 86_400_000).toISOString()
-
       const [prodRes, catRes, ventasRes] = await Promise.all([
         supabase
           .from('productos')
@@ -38,25 +36,19 @@ export function usePedidos() {
           .from('categorias')
           .select('*')
           .order('nombre'),
-        supabase
-          .from('ventas')
-          .select('detalle_ventas(producto_id, cantidad)')
-          .gte('fecha_hora', desde7d)
-          .eq('anulada', false),
+        // Lo vendido por producto ya sumado en la base (migración 017), en vez
+        // de bajar cada venta de la semana: la API corta en 1000 filas.
+        supabase.rpc('rotacion_productos'),
       ])
 
       if (prodRes.error) throw prodRes.error
       if (catRes.error)  throw catRes.error
       if (ventasRes.error) throw ventasRes.error
 
-      // Acumular unidades vendidas por producto (últimos 7 días)
       const salesMap = new Map<string, number>()
-      ;(ventasRes.data ?? []).forEach((v: any) => {
-        ;(v.detalle_ventas ?? []).forEach((dv: any) => {
-          const pid = dv.producto_id as string
-          salesMap.set(pid, (salesMap.get(pid) ?? 0) + Number(dv.cantidad))
-        })
-      })
+      for (const r of (ventasRes.data ?? []) as { producto_id: string; u7: number }[]) {
+        salesMap.set(r.producto_id, Number(r.u7))
+      }
 
       const productosConPedido: ProductoPedido[] = (prodRes.data ?? []).map((p: any) => {
         const u7d      = salesMap.get(p.id) ?? 0
@@ -67,6 +59,8 @@ export function usePedidos() {
           id:           p.id,
           nombre:       p.nombre,
           stock_actual: p.stock_actual,
+          unidad:       p.unidad,
+          imagen_url:   p.imagen_url,
           categoria_id: p.categoria_id,
           categorias:   p.categorias ?? null,
           unidades7d:   u7d,

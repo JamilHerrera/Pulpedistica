@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
+import { claveDia, ultimosDias } from '../lib/fechas'
 import type { DashboardStats, Venta } from '../types'
+import { agruparLlamadas } from '../lib/agrupar'
 
 const STOCK_MIN = 5
 
@@ -16,36 +18,24 @@ export function useDashboard() {
   const fetchStats = useCallback(async () => {
     try {
       setError(null)
-      const hoy = new Date()
-      hoy.setHours(0, 0, 0, 0)
-      const finHoy = new Date()
-      finHoy.setHours(23, 59, 59, 999)
+      // Siete días calendario en hora local, del más viejo a hoy.
+      const semana = ultimosDias(7)
+      const claveHoy = claveDia(semana[6])
+      const desde = semana[0].toISOString()
 
-      const inicioSemana = new Date()
-      inicioSemana.setDate(inicioSemana.getDate() - 6)
-      inicioSemana.setHours(0, 0, 0, 0)
-
-      const [ventasHoyRes, semanaRes, productosRes, recientesRes, topRes] = await consultaCacheada(
-        `dashboard:${hoy.toDateString()}`,
+      const [porDiaRes, totalProdRes, stockBajoRes, recientesRes, topRes] = await consultaCacheada(
+        `dashboard:${claveHoy}`,
         () => Promise.all([
-        // Métricas: excluir anuladas
-        supabase
-          .from('ventas')
-          .select('id, monto_total')
-          .gte('fecha_hora', hoy.toISOString())
-          .lte('fecha_hora', finHoy.toISOString())
-          .eq('anulada', false),
+        // Totales por día ya sumados en la base (migración 017), en vez de
+        // bajar cada venta de la semana: la API corta en 1000 filas sin
+        // avisar, y un día de mucho movimiento dejaba "Ventas hoy" en menos.
+        supabase.rpc('ventas_por_dia', { p_desde: desde }),
 
-        supabase
-          .from('ventas')
-          .select('fecha_hora, monto_total')
-          .gte('fecha_hora', inicioSemana.toISOString())
-          .eq('anulada', false)
-          .order('fecha_hora', { ascending: true }),
-
-        supabase
-          .from('productos')
-          .select('id, stock_actual'),
+        // Solo hacen falta dos números, así que se piden CONTEOS (`head: true`
+        // no trae filas). Bajar la lista entera para contarla se cortaba en
+        // 1000, y con un catálogo grande el total salía mal.
+        supabase.from('productos').select('id', { count: 'exact', head: true }),
+        supabase.from('productos').select('id', { count: 'exact', head: true }).lte('stock_actual', STOCK_MIN),
 
         // Historial reciente: incluir anuladas (para mostrarlas con badge)
         supabase
@@ -54,49 +44,36 @@ export function useDashboard() {
           .order('fecha_hora', { ascending: false })
           .limit(5),
 
-        supabase
-          .from('detalle_ventas')
-          .select('producto_id, cantidad, productos(nombre), ventas!inner(fecha_hora)')
-          .gte('ventas.fecha_hora', inicioSemana.toISOString())
-          .order('cantidad', { ascending: false })
-          .limit(5),
+        // Agrupa por producto y RECIÉN DESPUÉS corta en 5. Antes se pedían
+        // las 5 líneas de venta más grandes y se agrupaban esas cinco, así
+        // que el "top 5" eran las cinco ventas individuales mayores, no los
+        // cinco productos que más se vendieron.
+        supabase.rpc('top_productos', { p_desde: desde, p_limite: 5 }),
         ]),
         TTL.corto,
       )
 
-      const ventasHoy    = ventasHoyRes.data ?? []
-      const ventasSemana = semanaRes.data ?? []
-      const productos    = productosRes.data ?? []
+      if (porDiaRes.error) throw porDiaRes.error
+      if (topRes.error) throw topRes.error
 
-      const montoHoy = ventasHoy.reduce((s, v) => s + (v.monto_total ?? 0), 0)
-      const productosStockBajo = productos.filter((p) => p.stock_actual <= STOCK_MIN).length
+      const porDia = new Map<string, { monto: number; ventas: number }>()
+      for (const f of (porDiaRes.data ?? []) as { dia: string; monto: number; ventas: number }[]) {
+        porDia.set(f.dia, { monto: Number(f.monto), ventas: Number(f.ventas) })
+      }
 
-      const ventasPorDia = new Array(7).fill(0)
-      ventasSemana.forEach((v) => {
-        const dia = new Date(v.fecha_hora)
-        const diff = Math.floor((Date.now() - dia.getTime()) / 86400000)
-        const idx = 6 - Math.min(6, Math.max(0, diff))
-        ventasPorDia[idx] += v.monto_total ?? 0
-      })
+      if (totalProdRes.error) throw totalProdRes.error
+      if (stockBajoRes.error) throw stockBajoRes.error
+      const ventasPorDia = semana.map((d) => porDia.get(claveDia(d))?.monto ?? 0)
+      const deHoy = porDia.get(claveHoy)
 
-      const topRaw = (topRes.data ?? []) as unknown as Array<{
-        producto_id: string; cantidad: number; productos: { nombre: string } | null
-      }>
-      const topMap = new Map<string, { nombre: string; cantidad: number }>()
-      topRaw.forEach((d) => {
-        const nombre = d.productos?.nombre ?? 'Desconocido'
-        const prev = topMap.get(nombre) ?? { nombre, cantidad: 0 }
-        topMap.set(nombre, { nombre, cantidad: prev.cantidad + d.cantidad })
-      })
-      const topProductos = Array.from(topMap.values())
-        .sort((a, b) => b.cantidad - a.cantidad)
-        .slice(0, 5)
+      const topProductos = ((topRes.data ?? []) as { nombre: string; cantidad: number }[])
+        .map((t) => ({ nombre: t.nombre, cantidad: Number(t.cantidad) }))
 
       setStats({
-        ventasHoy: ventasHoy.length,
-        montoHoy,
-        productosStockBajo,
-        totalProductos: productos.length,
+        ventasHoy: deHoy?.ventas ?? 0,
+        montoHoy: deHoy?.monto ?? 0,
+        productosStockBajo: stockBajoRes.count ?? 0,
+        totalProductos: totalProdRes.count ?? 0,
         ventasEsta_semana: ventasPorDia,
         topProductos,
         ventasRecientes: (recientesRes.data ?? []) as unknown as Venta[],
@@ -134,18 +111,23 @@ export function useDashboard() {
     fetchStats()
 
     // Sin invalidar primero, el refresco devolveria lo que ya hay en cache.
-    const alCambiar = () => {
+    // Y agrupado: una rafaga de ventas produce UNA recarga, no una por evento
+    // (ver lib/agrupar.ts, donde esta medido por que hace falta).
+    const refresco = agruparLlamadas(() => {
       invalidar('dashboard', 'ventas', 'productos')
       fetchStats()
-    }
+    }, 800, 3000)
 
+    // Solo `ventas`: el detalle se escribe en la misma transaccion que su
+    // venta, asi que escuchar `detalle_ventas` repetia el aviso una vez por
+    // cada producto de la venta, sin aportar nada.
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, alCambiar)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'detalle_ventas' }, alCambiar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, refresco.disparar)
       .subscribe()
 
     return () => {
+      refresco.cancelar()
       channel.unsubscribe()
       supabase.removeChannel(channel)
     }

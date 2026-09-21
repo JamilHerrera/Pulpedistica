@@ -4,6 +4,7 @@ import { nombreDeCanal } from '../lib/canal'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
 import type { Cliente, Fiado } from '../types'
+import { agruparLlamadas } from '../lib/agrupar'
 
 export function useFiados() {
   const [fiados, setFiados] = useState<Fiado[]>([])
@@ -126,13 +127,16 @@ export function useFiados() {
   useEffect(() => {
     fetchData()
 
+    const refresco = agruparLlamadas(() => { refrescar() }, 800, 3000)
+
     const channel = supabase
       .channel(channelName.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'fiados' }, refrescar)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refrescar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fiados' }, refresco.disparar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refresco.disparar)
       .subscribe()
 
     return () => {
+      refresco.cancelar()
       channel.unsubscribe()
       supabase.removeChannel(channel)
     }

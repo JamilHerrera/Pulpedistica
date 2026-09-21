@@ -26,89 +26,53 @@ export function useEstancados() {
       setError(null)
       setLoading(true)
 
-      const hoy     = new Date()
-      const desde30d = new Date(hoy.getTime() - 30 * 86_400_000).toISOString()
+      const hoy = new Date()
 
-      // 1. Todos los productos con stock > 0
-      const prodRes = await consultaCacheada('estancados:productos', async () => await supabase
-        .from('productos')
-        .select('id, nombre, stock_actual, unidad, imagen_url, categoria_id, categorias(id, nombre)')
-        .gt('stock_actual', 0)
-        .order('stock_actual', { ascending: false }), TTL.medio)
+      // Antes esto eran cuatro consultas encadenadas, y la última armaba una
+      // URL con el id de CADA venta histórica de los productos estancados:
+      // con suficiente historial la dirección se pasaba del largo permitido y
+      // la pantalla dejaba de cargar. Ahora la base devuelve, por producto, lo
+      // vendido en 30 días y la fecha de su última venta (migración 017).
+      const [prodRes, rotRes] = await Promise.all([
+        consultaCacheada('estancados:productos', async () => await supabase
+          .from('productos')
+          .select('id, nombre, stock_actual, unidad, imagen_url, categoria_id, categorias(id, nombre)')
+          .gt('stock_actual', 0)
+          .order('stock_actual', { ascending: false }), TTL.medio),
+        supabase.rpc('rotacion_productos'),
+      ])
 
       if (prodRes.error) throw prodRes.error
-      const productos = (prodRes.data ?? []) as any[]
-      if (productos.length === 0) { setEstancados([]); return }
+      if (rotRes.error) throw rotRes.error
 
-      // 2. Productos con ventas en los últimos 30 días
-      const ventasRes = await supabase
-        .from('ventas')
-        .select('detalle_ventas(producto_id)')
-        .gte('fecha_hora', desde30d)
-        .eq('anulada', false)
-
-      if (ventasRes.error) throw ventasRes.error
-
-      const vendidosIds = new Set<string>()
-      ;(ventasRes.data ?? []).forEach((v: any) => {
-        ;(v.detalle_ventas ?? []).forEach((dv: any) => vendidosIds.add(dv.producto_id as string))
-      })
-
-      // 3. Estancados = stock > 0 Y sin ventas en 30 días
-      const stagnant = productos.filter((p) => !vendidosIds.has(p.id))
-      if (stagnant.length === 0) { setEstancados([]); return }
-
-      const stagnantIds = stagnant.map((p) => p.id) as string[]
-
-      // 4. Última fecha de venta para cada estancado (buscar en historial)
-      const histRes = await supabase
-        .from('detalle_ventas')
-        .select('producto_id, venta_id')
-        .in('producto_id', stagnantIds)
-
-      let ventaDateMap = new Map<string, string>()   // venta_id → fecha_hora
-      if (!histRes.error && histRes.data && histRes.data.length > 0) {
-        const vIds = [...new Set(histRes.data.map((d: any) => d.venta_id as string))]
-        const fechasRes = await supabase
-          .from('ventas')
-          .select('id, fecha_hora')
-          .in('id', vIds)
-          .eq('anulada', false)
-
-        if (!fechasRes.error) {
-          ;(fechasRes.data ?? []).forEach((v: any) => {
-            ventaDateMap.set(v.id as string, v.fecha_hora as string)
-          })
-        }
+      const rotacion = new Map<string, { u30: number; ultima: string | null }>()
+      for (const r of (rotRes.data ?? []) as { producto_id: string; u30: number; ultima_venta: string | null }[]) {
+        rotacion.set(r.producto_id, { u30: Number(r.u30), ultima: r.ultima_venta })
       }
 
-      // Mapa: producto_id → última fecha de venta
-      const lastSaleMap = new Map<string, string>()
-      ;(histRes.data ?? []).forEach((d: any) => {
-        const fecha = ventaDateMap.get(d.venta_id as string)
-        if (!fecha) return
-        const prev = lastSaleMap.get(d.producto_id as string)
-        if (!prev || fecha > prev) lastSaleMap.set(d.producto_id as string, fecha)
-      })
+      // Estancado = tiene existencias y no se vendió nada en 30 días.
+      const productos = (prodRes.data ?? []) as any[]
+      const resultado: ProductoEstancado[] = productos
+        .filter((p) => (rotacion.get(p.id)?.u30 ?? 0) === 0)
+        .map((p) => {
+          const ultima = rotacion.get(p.id)?.ultima ?? null
+          const ultimaVenta = ultima ? new Date(ultima) : null
+          const diasSinVenta = ultimaVenta
+            ? Math.floor((hoy.getTime() - ultimaVenta.getTime()) / 86_400_000)
+            : 999  // nunca vendido
 
-      // 5. Construir resultado con días sin venta
-      const resultado: ProductoEstancado[] = stagnant.map((p) => {
-        const ultimaFecha = lastSaleMap.get(p.id)
-        const ultimaVenta = ultimaFecha ? new Date(ultimaFecha) : null
-        const diasSinVenta = ultimaVenta
-          ? Math.floor((hoy.getTime() - ultimaVenta.getTime()) / 86_400_000)
-          : 999  // nunca vendido
-
-        return {
-          id:           p.id,
-          nombre:       p.nombre,
-          stock_actual: p.stock_actual,
-          categoria_id: p.categoria_id,
-          categorias:   p.categorias ?? null,
-          diasSinVenta,
-          ultimaVenta,
-        }
-      })
+          return {
+            id:           p.id,
+            nombre:       p.nombre,
+            stock_actual: p.stock_actual,
+            unidad:       p.unidad,
+            imagen_url:   p.imagen_url,
+            categoria_id: p.categoria_id,
+            categorias:   p.categorias ?? null,
+            diasSinVenta,
+            ultimaVenta,
+          }
+        })
 
       // Ordenar por más días sin venta primero
       resultado.sort((a, b) => b.diasSinVenta - a.diasSinVenta)
