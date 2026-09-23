@@ -267,22 +267,22 @@
         <rect x="26" y="78" width="328" height="80" rx="18" style="fill:rgba(239,68,68,.10);stroke:rgba(239,68,68,.4)" />
         <rect x="26" y="78" width="6" height="80" rx="3" style="fill:var(--danger)" />
         <text x="46" y="105" style="fill:var(--text);font:700 14px var(--font)">Yogurt Fresa 1L</text>
-        <text x="46" y="126" style="fill:var(--danger);font:600 11.5px var(--font)">0 unidades en 15 días · riesgo de vencer</text>
-        <text x="46" y="145" style="fill:var(--muted-2);font:400 10.5px var(--mono)">stock actual: 6</text>
+        <text x="46" y="126" style="fill:var(--danger);font:600 11.5px var(--font)">Se acabó · lo pidieron 4 veces este mes</text>
+        <text x="46" y="145" style="fill:var(--muted-2);font:400 10.5px var(--mono)">pedí 4 para cubrir el mes</text>
 
         <!-- fila amarilla: media rotación -->
         <rect x="26" y="170" width="328" height="80" rx="18" style="fill:rgba(245,158,11,.10);stroke:rgba(245,158,11,.4)" />
         <rect x="26" y="170" width="6" height="80" rx="3" style="fill:var(--warning)" />
         <text x="46" y="197" style="fill:var(--text);font:700 14px var(--font)">Detergente en Polvo 1kg</text>
-        <text x="46" y="218" style="fill:var(--warning);font:600 11.5px var(--font)">5 unidades en 15 días · vigilar</text>
-        <text x="46" y="237" style="fill:var(--muted-2);font:400 10.5px var(--mono)">stock actual: 9</text>
+        <text x="46" y="218" style="fill:var(--warning);font:600 11.5px var(--font)">te alcanza para 9 días · reponer pronto</text>
+        <text x="46" y="237" style="fill:var(--muted-2);font:400 10.5px var(--mono)">9 en stock · 1 por día</text>
 
         <!-- fila verde: alta rotación -->
         <rect x="26" y="262" width="328" height="80" rx="18" style="fill:rgba(16,185,129,.10);stroke:rgba(16,185,129,.4)" />
         <rect x="26" y="262" width="6" height="80" rx="3" style="fill:var(--success)" />
         <text x="46" y="289" style="fill:var(--text);font:700 14px var(--font)">Pan Blanco Grande</text>
-        <text x="46" y="310" style="fill:var(--success);font:600 11.5px var(--font)">22 unidades en 15 días · se vende solo</text>
-        <text x="46" y="329" style="fill:var(--muted-2);font:400 10.5px var(--mono)">stock actual: 4 · pedir pronto</text>
+        <text x="46" y="310" style="fill:var(--success);font:600 11.5px var(--font)">te alcanza para 2 meses · bien surtido</text>
+        <text x="46" y="329" style="fill:var(--muted-2);font:400 10.5px var(--mono)">44 lb en stock · 22 lb al mes</text>
 
         <rect x="26" y="364" width="328" height="46" rx="14" style="fill:var(--card);stroke:var(--line)" />
         <text x="190" y="392" text-anchor="middle" style="fill:var(--muted);font:600 11.5px var(--font)">3 productos · actualizado en tiempo real</text>
@@ -317,7 +317,7 @@
       <div class="two-col">
         <div>
           <p>PulpeDisticas es una Progressive Web App pensada de punta a punta para el mostrador de una pulpería hondureña: se abre desde el navegador del celular, no necesita instalarse desde ninguna tienda de apps, y funciona igual de bien en un teléfono de gama baja que en uno de gama alta.</p>
-          <p>El sistema centraliza toda la información en una única base de datos en la nube (Supabase), así que el encargado, el dueño o quien atienda ese turno siempre ven el mismo inventario y la misma caja, actualizados en tiempo real. Sobre esa base se construyen los cuatro pilares del producto: ventas exprés para cobrar en segundos, un semáforo que clasifica automáticamente la rotación de cada producto según sus ventas reales de los últimos 7, 15 o 30 días, un asistente que arma el pedido ideal por proveedor, y una caja diaria que se lleva sola conforme se registran las ventas.</p>
+          <p>El sistema centraliza toda la información en una única base de datos en la nube (Supabase), así que el encargado, el dueño o quien atienda ese turno siempre ven el mismo inventario y la misma caja, actualizados en tiempo real. Cada negocio ve únicamente sus propios datos, y el dueño decide quién entra y qué puede hacer. Sobre esa base se construyen los pilares del producto: ventas exprés para cobrar en segundos —por unidad o por peso—, un semáforo que cruza el stock con las ventas reales para decir qué reponer y qué sobra, un asistente que arma el pedido por proveedor, el control de los fiados, y una caja diaria que se lleva sola conforme se registran las ventas.</p>
           <p>Nada de esto depende de que alguien se acuerde de actualizar un cuaderno: el color del semáforo se recalcula solo cada vez que entra una venta nueva.</p>
         </div>
       </div>
@@ -329,7 +329,7 @@
     <div class="container">
       <div class="section__head">
         <span class="kicker"><span class="dot" style="background:var(--brand-light)"></span>03 · Funcionalidades</span>
-        <h2>Cuatro herramientas, un solo mostrador</h2>
+        <h2>Todo lo que pasa en el mostrador, en una sola app</h2>
         <p>Cada pantalla resuelve un momento distinto del día: antes de abrir, durante la venta, y al cerrar caja.</p>
       </div>
 
@@ -337,12 +337,12 @@
         <div class="card">
           <div class="card__icon">⚡</div>
           <h3>Ventas Express</h3>
-          <p>Botones de acceso rápido para los productos más vendidos (leche, pan, refrescos). Tocás, confirmás el precio si varía, y la venta queda registrada en menos de 5 segundos.</p>
+          <p>Todo el catálogo en cuadrícula, con foto de cada producto, buscador instantáneo y filtro por categoría. Tocás el producto, ajustás la cantidad y cobrás. Si nunca le pusiste precio, la app lo pide una vez y lo guarda.</p>
         </div>
         <div class="card">
           <div class="card__icon">🚦</div>
-          <h3>Semáforo de rotación</h3>
-          <p>Clasifica cada producto en tres niveles calculados sobre ventas reales: <strong style="color:var(--success)">verde</strong> (alta rotación, no debe faltar), <strong style="color:var(--warning)">amarillo</strong> (rotación media, vigilar) y <strong style="color:var(--danger)">rojo</strong> (baja o nula rotación, riesgo de estancarse o vencer).</p>
+          <h3>Semáforo: qué reponer</h3>
+          <p>Cruza el stock con el ritmo de venta y calcula <strong>días de cobertura</strong>: para cuánto te alcanza lo que tenés. Separa lo que hay que pedir hoy de lo que sobra en bodega, y dice cuánto pedir. Una segunda vista mantiene la clasificación clásica por rotación: <strong style="color:var(--success)">verde</strong> alta, <strong style="color:var(--warning)">amarillo</strong> media, <strong style="color:var(--danger)">rojo</strong> baja.</p>
         </div>
         <div class="card">
           <div class="card__icon">📋</div>
@@ -357,12 +357,27 @@
         <div class="card">
           <div class="card__icon">📈</div>
           <h3>Panel de análisis</h3>
-          <p>Tendencia de ventas de la semana, productos más vendidos y comparativa entre periodos de 7, 15 y 30 días para decidir con datos y no por intuición.</p>
+          <p>Ingresos por día, productos más vendidos y reparto por categoría, sobre períodos de 7, 14 o 30 días. Los totales los suma la base de datos, así que no se desvían por más ventas que haya.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">⚖️</div>
+          <h3>Venta por peso</h3>
+          <p>Lo que se vende por libra o por kilo acepta media libra, tres cuartos, o lo que marque la balanza. Lo que se cuenta de a uno no admite cantidades partidas, y esa regla la impone la base de datos, no solo la pantalla.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">🤝</div>
+          <h3>Fiados</h3>
+          <p>Registro de clientes y de ventas al crédito, con el detalle de lo que está pendiente y lo que ya se saldó. El fiado es parte del día en una pulpería y deja de vivir en un cuaderno aparte.</p>
+        </div>
+        <div class="card">
+          <div class="card__icon">👥</div>
+          <h3>Varios usuarios, un negocio</h3>
+          <p>El dueño invita a sus empleados con un código. Cada pulpería ve únicamente sus propios datos, y el empleado puede cobrar y anotar fiados, pero no anular ventas ni editar el catálogo.</p>
         </div>
         <div class="card">
           <div class="card__icon">📦</div>
           <h3>Inventario centralizado</h3>
-          <p>Catálogo único de productos con stock, precio y categoría, sincronizado en tiempo real entre todos los dispositivos que usen la pulpería.</p>
+          <p>Catálogo único con stock, precio, categoría y foto —que se sube desde el propio celular—, sincronizado en tiempo real entre todos los dispositivos de la pulpería.</p>
         </div>
       </div>
 
@@ -407,10 +422,11 @@
       </div>
       <div class="two-col">
         <div>
-          <p>PulpeDisticas usa una arquitectura de dos capas desacopladas, documentada desde el inicio mediante ADRs (Architecture Decision Records) para que cualquier cambio futuro quede justificado por escrito y no solo en la memoria de quien programó:</p>
+          <p>PulpeDisticas usa una arquitectura de capas desacopladas, documentada mediante ADRs (Architecture Decision Records) para que cualquier cambio quede justificado por escrito y no solo en la memoria de quien programó — incluidos los cambios de rumbo: el ADR-3 registra por qué la API propia que planteaban el ADR-1 y el ADR-2 nunca se construyó, y qué la reemplazó.</p>
           <p><strong>1) Presentación —</strong> una SPA en React 18 + TypeScript que corre en el navegador del celular. No conoce reglas de negocio de bajo nivel: su trabajo es mostrar el inventario, la caja y el semáforo, y capturar las acciones del usuario (una venta, un producto nuevo, un pedido).</p>
-          <p><strong>2) Datos y reglas —</strong> Supabase como Backend-as-a-Service, que expone PostgreSQL más un canal de tiempo real (Realtime). Cuando se registra una venta, la app se suscribe a los cambios de las tablas <code style="font-family:var(--mono)">ventas</code> y <code style="font-family:var(--mono)">detalle_ventas</code>; en cuanto detecta un cambio, vuelve a calcular la clasificación del semáforo en el propio cliente, comparando las unidades vendidas contra umbrales fijos por periodo (7, 15 o 30 días).</p>
-          <p>Esta separación permite migrar la lógica del semáforo a un servicio independiente el día que el negocio lo requiera, sin tocar una sola pantalla — una decisión que quedó documentada explícitamente para evitar que las reglas de reabastecimiento terminen duplicadas entre el cliente y el servidor.</p>
+          <p><strong>2) Datos y reglas —</strong> Supabase como Backend-as-a-Service: PostgreSQL con autenticación, seguridad a nivel de fila y un canal de tiempo real. Acá vive todo lo que protege el dinero y el inventario, porque es lo único que no se puede saltear: las políticas que aíslan cada negocio, las restricciones de integridad, y funciones transaccionales como <code style="font-family:var(--mono)">registrar_venta</code>, que descuenta el stock y registra la venta en una sola operación atómica, rechaza lo que no alcanza y es idempotente ante un doble clic.</p>
+          <p><strong>3) Funciones serverless —</strong> en Vercel, solo para lo que no puede vivir en la base: hoy el healthcheck público.</p>
+          <p>Los totales —ventas por día, más vendidos, rotación por producto— los calcula la base y devuelve ya sumados. Es una decisión que se tomó midiendo: bajar las líneas de venta crudas al navegador funcionaba con pocas ventas, pero la API corta las respuestas en mil filas sin avisar, y a partir de ahí los ingresos salían mal en silencio. La app se suscribe a los cambios de <code style="font-family:var(--mono)">ventas</code> y agrupa las ráfagas en un solo refresco, para que una venta de cinco productos no dispare cinco recargas.</p>
         </div>
       </div>
 
@@ -429,7 +445,7 @@
           <rect x="252" y="90" width="220" height="120" rx="18" style="fill:var(--surface);stroke:var(--accent);stroke-opacity:.7" />
           <text x="362" y="130" text-anchor="middle" style="fill:var(--text);font:700 14px var(--font)">📱 App PWA</text>
           <text x="362" y="150" text-anchor="middle" style="fill:var(--muted);font:400 11px var(--font)">React 18 + TypeScript</text>
-          <text x="362" y="168" text-anchor="middle" style="fill:var(--muted-2);font:400 10px var(--font)">calcula el semáforo en cliente</text>
+          <text x="362" y="168" text-anchor="middle" style="fill:var(--muted-2);font:400 10px var(--font)">muestra, captura y cobra</text>
 
           <path d="M472 150 H 560" style="stroke:var(--accent);stroke-width:2" marker-end="url(#arrow)" />
           <path d="M560 165 H 472" style="stroke:var(--accent);stroke-width:2;stroke-dasharray:4 4" marker-end="url(#arrow)" />
@@ -473,7 +489,7 @@
         <span class="chip">🗄️ Supabase <small>PostgreSQL + Realtime</small></span>
         <span class="chip">📈 Recharts <small>gráficos</small></span>
         <span class="chip">🎯 Lucide React <small>iconografía</small></span>
-        <span class="chip">📲 vite-plugin-pwa <small>instalable / offline</small></span>
+        <span class="chip">📲 PWA propia <small>service worker versionado</small></span>
         <span class="chip">▲ Vercel <small>despliegue continuo</small></span>
       </div>
       <p style="margin-top:22px;max-width:70ch;">React y TypeScript dan velocidad de desarrollo sin sacrificar seguridad de tipos entre pantallas y hooks. Vite mantiene los tiempos de recarga casi instantáneos incluso en máquinas modestas. Tailwind permite construir una interfaz táctil de alta fidelidad sin escribir CSS a mano para cada pantalla. Y Supabase evita programar y mantener un backend propio: con su capa gratuita alcanza sobra para una o varias pulperías, y su canal Realtime es lo que le da vida al semáforo, que se actualiza solo apenas entra una venta nueva.</p>
@@ -500,7 +516,7 @@
           </div>
           <div class="step">
             <div class="step__n">3</div>
-            <div><h3>Revisá el Semáforo cada mañana</h3><p>Abrí <strong>Semáforo</strong> y mirá qué quedó en rojo (riesgo de estancarse), en amarillo (vigilar) o en verde (que no falte). Elegí el periodo de 7, 15 o 30 días según qué tan seguido revisás.</p></div>
+            <div><h3>Revisá el Semáforo cada mañana</h3><p>Abrí <strong>Semáforo</strong> y mirá <em>Qué reponer</em>: arriba queda lo que se acaba en menos de una semana, con la cantidad sugerida para cubrir el mes, y más abajo lo que sobra en bodega. Elegí el período de 7, 15 o 30 días según qué tan seguido revisás.</p></div>
           </div>
           <div class="step">
             <div class="step__n">4</div>
