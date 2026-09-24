@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { consultaCacheada, invalidar, TTL } from '../lib/cache'
-import { insertarIdempotente, nuevaClave } from '../lib/idempotencia'
+import { nuevaClave } from '../lib/idempotencia'
 import {
   redondearCantidad, cantidadValida, sumarPaso, totalDeVenta,
   limitarAlStock, hayExistencias,
@@ -184,12 +184,24 @@ export function useVenta() {
     [preciosLocales],
   )
 
-  // Register a free-amount sale (no product, no stock change)
+  /**
+   * Cobra un monto escrito a mano, sin producto y sin tocar el stock.
+   *
+   * Va por una funcion y no por un insert directo porque `ventas` no tiene
+   * politica de INSERT: se quito a proposito en la 012 para que toda venta
+   * entre por una funcion que garantice el detalle y el descuento de stock.
+   * Insertar directo devolvia 42501 desde entonces.
+   */
   const registrarMontoLibre = useCallback(async (monto: number): Promise<boolean> => {
     if (monto <= 0) return false
     setSaving(true)
     try {
-      await insertarIdempotente('ventas', { monto_total: monto }, claveVenta.current)
+      const { error } = await supabase.rpc('registrar_monto_libre', {
+        p_idempotency_key: claveVenta.current,
+        p_monto: monto,
+      })
+      if (error) throw error
+
       invalidar('ventas', 'dashboard', 'analisis')
       claveVenta.current = nuevaClave()
       return true
