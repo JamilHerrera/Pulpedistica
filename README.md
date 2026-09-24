@@ -15,7 +15,7 @@ El sistema transforma el mostrador tradicional en un punto de venta express inte
 - **Semáforo con dos lecturas:**
   - *Qué reponer* (vista por defecto): cruza el stock con el ritmo de venta y calcula **días de cobertura**. Separa lo que hay que pedir hoy de lo que sobra en bodega, y sugiere cuánto pedir.
   - *Cómo rota*: la clasificación clásica por unidades vendidas en 7, 15 o 30 días — **verde** alta rotación, **amarillo** media, **rojo** baja.
-- **Inventario editable:** el administrador corrige la ficha de un producto —nombre, precio, categoría, cómo se vende y existencia— desde una sola ventana. El identificador y el negocio no se tocan, porque el historial de ventas apunta al producto y cambiarlos dejaría las ventas viejas sin referencia. Cambiar el precio afecta solo a las ventas nuevas: cada venta guardó el suyo.
+- **Inventario editable:** el administrador corrige la ficha de un producto —nombre, foto, precio, categoría y cómo se vende— desde una sola ventana. La existencia queda aparte, en la tarjeta, porque es el número que cambia cada vez que entra o sale mercadería. El identificador y el negocio no se tocan: el historial de ventas apunta al producto, y cambiarlos dejaría las ventas viejas sin referencia. Cambiar el precio afecta solo a las ventas nuevas, porque cada venta guardó el suyo.
 - **Fiados:** registro de clientes y de ventas al crédito, con control de lo pendiente y lo saldado.
 - **Asistente de Pedidos:** calcula cuánto conviene pedir de cada producto y arma un resumen listo para pegar en WhatsApp del distribuidor.
 - **Control de Caja Diaria:** total vendido del día, transacciones y últimas ventas, sin sumar nada a mano.

@@ -35,20 +35,26 @@ function stockStatus(stock: number): { label: string; color: string; bar: string
   return             { label: 'OK',     color: 'text-success', bar: 'bg-success' }
 }
 
+/**
+ * La tarjeta de un producto en el inventario.
+ *
+ * Lo único que se cambia acá es la existencia, tocando el número. Es lo que se
+ * corrige a diario cuando entra o sale mercadería, y merece estar a un toque.
+ * Los datos del catálogo —nombre, foto, precio, categoría y cómo se vende— se
+ * editan en la ficha, que se abre con el botón Editar: se tocan pocas veces y
+ * tenerlos acá llenaba la tarjeta de controles.
+ */
 function ProductoCard({
-  producto, onUpdate, isUpdating, esAdmin, onFoto, onQuitarFoto, onEditar,
+  producto, onUpdate, isUpdating, esAdmin, onEditar,
 }: Readonly<{
   producto: Producto
   onUpdate: (id: string, stock: number) => void
   isUpdating: boolean
   esAdmin: boolean
-  onFoto: (p: Producto, archivo: File) => void
-  onQuitarFoto: (p: Producto) => void
   onEditar: (p: Producto) => void
 }>) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(String(producto.stock_actual))
-  const archivoRef = useRef<HTMLInputElement>(null)
 
   const status = stockStatus(producto.stock_actual)
   const max = Math.max(50, producto.stock_actual)
@@ -67,41 +73,12 @@ function ProductoCard({
   return (
     <div className={`glass-card p-4 transition-all duration-200 ${isUpdating ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-3">
-        {/* La foto es el botón de subirla: no hace falta otro control. */}
-        <div className="relative shrink-0">
-          <FotoProducto
-            nombre={producto.nombre}
-            url={producto.imagen_url}
-            className="h-12 w-12 rounded-xl"
-            iconSize={20}
-          />
-          {esAdmin && (
-            <>
-              <input
-                ref={archivoRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                // `capture` deja que el teléfono ofrezca la cámara directo.
-                capture="environment"
-                className="hidden"
-                aria-label={`Foto de ${producto.nombre}`}
-                onChange={(e) => {
-                  const archivo = e.target.files?.[0]
-                  if (archivo) onFoto(producto, archivo)
-                  // Se limpia para poder volver a elegir el MISMO archivo.
-                  e.target.value = ''
-                }}
-              />
-              <button
-                onClick={() => archivoRef.current?.click()}
-                title={producto.imagen_url ? 'Cambiar la foto' : 'Agregar una foto'}
-                className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-lg border border-white/15 bg-surface-elevated text-white/60 transition-all hover:text-white active:scale-90"
-              >
-                <Camera size={11} />
-              </button>
-            </>
-          )}
-        </div>
+        <FotoProducto
+          nombre={producto.nombre}
+          url={producto.imagen_url}
+          className="h-12 w-12 shrink-0 rounded-xl"
+          iconSize={20}
+        />
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-white">{producto.nombre}</p>
@@ -123,15 +100,6 @@ function ProductoCard({
                 className="flex items-center gap-1 text-[10px] font-medium text-white/40 transition-colors hover:text-brand-light"
               >
                 <Pencil size={10} /> Editar
-              </button>
-            )}
-            {producto.imagen_url && esAdmin && (
-              <button
-                onClick={() => onQuitarFoto(producto)}
-                title="Quitar la foto"
-                className="text-white/20 transition-colors hover:text-danger"
-              >
-                <Trash2 size={11} />
               </button>
             )}
           </div>
@@ -187,44 +155,49 @@ function ProductoCard({
 /**
  * Ficha de edición de un producto.
  *
- * Solo aparecen los campos que conviene editar. `id` y `negocio_id` no están,
- * y no es un olvido: mover un producto de negocio rompería el historial de
- * ventas y el aislamiento entre pulperías. Borrar tampoco se ofrece acá,
- * porque un producto con ventas no se puede borrar sin dejar el historial sin
- * referencia — la base misma lo impide.
+ * Están los datos del catálogo: nombre, foto, precio, categoría y cómo se
+ * vende. La existencia no, y no es un olvido: se corrige en la tarjeta, de a un
+ * toque, porque cambia cada vez que entra o sale mercadería.
+ *
+ * `id` y `negocio_id` tampoco están: mover un producto de negocio rompería el
+ * historial de ventas y el aislamiento entre pulperías. Borrar no se ofrece
+ * acá, porque un producto con ventas no se puede borrar sin dejar el historial
+ * sin referencia — la base misma lo impide.
  *
  * Renombrar y cambiar el precio SÍ son seguros: las ventas pasadas apuntan al
  * identificador y guardan su propio subtotal, así que nada de lo ya cobrado
  * cambia de monto al corregir el catálogo.
  */
 function EditarProductoModal({
-  producto, categorias, productos, onGuardar, onClose,
+  producto, categorias, productos, onGuardar, onFoto, onQuitarFoto, onClose,
 }: Readonly<{
   producto: Producto
   categorias: { id: string; nombre: string }[]
   productos: Producto[]
   onGuardar: (cambios: Partial<ValoresProducto>) => Promise<string | null>
+  onFoto: (archivo: File) => Promise<string | null>
+  onQuitarFoto: () => Promise<string | null>
   onClose: () => void
 }>) {
   const [nombre, setNombre] = useState(producto.nombre)
   const [precio, setPrecio] = useState(
     producto.precio === null || producto.precio === undefined ? '' : String(producto.precio),
   )
-  const [stock, setStock] = useState(String(producto.stock_actual))
   const [unidad, setUnidad] = useState<UnidadMedida>(producto.unidad ?? 'unidad')
   const [catId, setCatId] = useState(producto.categoria_id ?? '')
   const [fallo, setFallo] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [foto, setFoto] = useState<'quieta' | 'trabajando'>('quieta')
+  const archivoRef = useRef<HTMLInputElement>(null)
 
   const original: ValoresProducto = {
     nombre: producto.nombre,
     precio: producto.precio === null || producto.precio === undefined ? null : Number(producto.precio),
-    stock_actual: producto.stock_actual,
     unidad: producto.unidad ?? 'unidad',
     categoria_id: producto.categoria_id ?? null,
   }
 
-  const validacion = validarProducto({ nombre, precio, stock, unidad, categoria_id: catId })
+  const validacion = validarProducto({ nombre, precio, unidad, categoria_id: catId })
   const repetido = nombreRepetido(nombre, productos, producto.id)
   const cambios = validacion.ok ? cambiosDeProducto(original, validacion.valores) : {}
   const hayCambios = Object.keys(cambios).length > 0
@@ -241,20 +214,15 @@ function EditarProductoModal({
   const puedeGuardar = validacion.ok && !repetido && hayCambios && !guardando
 
   /**
-   * Cambia la unidad y ajusta la existencia a la vista.
+   * ¿Pasar a "por unidad" deja una existencia que no se puede contar?
    *
-   * Pasar de "por libra" a "por unidad" hace que 2.5 deje de ser una cantidad
-   * representable. El ajuste se hace acá, en el campo, y no callado al
-   * guardar: así se ve con qué existencia va a quedar el producto antes de
-   * confirmar, en vez de descubrir después que media libra se perdió.
+   * Cambiar cómo se vende no toca la existencia guardada: si hay 2.5 libras,
+   * siguen siendo 2.5 hasta que alguien las corrija. Truncarlas acá haría
+   * desaparecer media libra real sin que nadie lo pidiera. Lo que sí se puede
+   * hacer es avisar, para que no quede un "2.5 unidades" que nadie entiende.
    */
-  const elegirUnidad = (nueva: UnidadMedida) => {
-    setUnidad(nueva)
-    const n = Number.parseFloat(stock.trim().replace(',', '.'))
-    if (!Number.isFinite(n)) return
-    const ajustado = redondearCantidad(n, nueva)
-    if (ajustado !== n) setStock(String(ajustado))
-  }
+  const existenciaQuedaRara =
+    unidad === 'unidad' && !Number.isInteger(producto.stock_actual)
 
   const guardar = async () => {
     if (!puedeGuardar) return
@@ -287,6 +255,62 @@ function EditarProductoModal({
           <button onClick={onClose} aria-label="Cerrar" className="text-white/30 shrink-0"><X size={20} /></button>
         </div>
 
+        {/* La foto se aplica al instante: subir un archivo es su propia
+            operación contra el almacenamiento, no una columna que pueda viajar
+            con el resto de los campos al apretar Guardar. */}
+        <div className="flex items-center gap-3 rounded-2xl bg-white/[0.03] p-3">
+          <FotoProducto nombre={producto.nombre} url={producto.imagen_url} className="h-16 w-16 rounded-xl shrink-0" iconSize={24} />
+          <div className="min-w-0 flex-1">
+            <input
+              ref={archivoRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              // `capture` deja que el teléfono ofrezca la cámara directo.
+              capture="environment"
+              className="hidden"
+              aria-label={`Foto de ${producto.nombre}`}
+              onChange={async (e) => {
+                const archivo = e.target.files?.[0]
+                // Se limpia para poder volver a elegir el MISMO archivo.
+                e.target.value = ''
+                if (!archivo) return
+                setFallo(null)
+                setFoto('trabajando')
+                const problema = await onFoto(archivo)
+                setFoto('quieta')
+                if (problema) setFallo(problema)
+              }}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => archivoRef.current?.click()}
+                disabled={foto === 'trabajando'}
+                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs font-bold text-white/70 transition-colors hover:text-white disabled:opacity-40"
+              >
+                <Camera size={13} /> {producto.imagen_url ? 'Cambiar foto' : 'Agregar foto'}
+              </button>
+              {producto.imagen_url && (
+                <button
+                  onClick={async () => {
+                    setFallo(null)
+                    setFoto('trabajando')
+                    const problema = await onQuitarFoto()
+                    setFoto('quieta')
+                    if (problema) setFallo(problema)
+                  }}
+                  disabled={foto === 'trabajando'}
+                  className="flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-bold text-white/35 transition-colors hover:text-danger disabled:opacity-40"
+                >
+                  <Trash2 size={13} /> Quitar
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-[11px] text-white/25">
+              {foto === 'trabajando' ? 'Trabajando con la foto…' : 'La foto se guarda sola, al elegirla.'}
+            </p>
+          </div>
+        </div>
+
         <div>
           <label htmlFor="editar-nombre" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre</label>
           <input
@@ -301,35 +325,27 @@ function EditarProductoModal({
           {repetido && <p className="mt-1.5 text-xs text-danger">Ya tenés otro producto con ese nombre.</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="editar-stock" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Existencia</label>
-            <input
-              id="editar-stock"
-              type="text"
-              inputMode="decimal"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              className="input-field"
-            />
-            {errores.stock && <p className="mt-1.5 text-xs text-danger">{errores.stock}</p>}
+        <div>
+          <label htmlFor="editar-unidad" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Cómo se vende</label>
+          <div className="relative">
+            <select
+              id="editar-unidad"
+              value={unidad}
+              onChange={(e) => setUnidad(e.target.value as UnidadMedida)}
+              className="input-field appearance-none pr-8"
+            >
+              {UNIDADES_DISPONIBLES.map((u) => (
+                <option key={u} value={u} className="bg-surface">{UNIDADES[u].etiqueta}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
           </div>
-          <div>
-            <label htmlFor="editar-unidad" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Cómo se vende</label>
-            <div className="relative">
-              <select
-                id="editar-unidad"
-                value={unidad}
-                onChange={(e) => elegirUnidad(e.target.value as UnidadMedida)}
-                className="input-field appearance-none pr-8"
-              >
-                {UNIDADES_DISPONIBLES.map((u) => (
-                  <option key={u} value={u} className="bg-surface">{UNIDADES[u].etiqueta}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-            </div>
-          </div>
+          {existenciaQuedaRara && (
+            <p className="mt-1.5 text-[11px] text-yellow-400/80">
+              Hay {formatearCantidad(producto.stock_actual, 'libra')} en existencia. Vendiéndose de a uno
+              vas a querer corregir ese número en la tarjeta; desde acá no se toca.
+            </p>
+          )}
         </div>
 
         <div>
@@ -624,10 +640,14 @@ export function Inventario({ onToast }: Readonly<Props>) {
     actualizarStock, editarProducto, subirFoto, quitarFoto,
     agregarProducto, agregarCategoria, refetch,
   } = useInventario()
-  const [editando, setEditando] = useState<Producto | null>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
   // Editar el catalogo es del admin: las politicas lo exigen del lado del servidor.
   const { esAdmin } = usePerfil()
   const [query, setQuery] = useState('')
+
+  // La ficha se lee de la lista viva, no de una copia: así al cambiar la foto
+  // la vista previa se actualiza en el momento.
+  const editando = editandoId === null ? null : productos.find((p) => p.id === editandoId) ?? null
   const [catFilter, setCatFilter] = useState<string>('todos')
   const [soloAlertas, setSoloAlertas] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
@@ -730,18 +750,7 @@ export function Inventario({ onToast }: Readonly<Props>) {
                 if (ok) onToast('Stock actualizado', `${p.nombre}: ${formatearCantidad(stock, p.unidad)}`, 'success')
                 else onToast('Error al actualizar', undefined, 'error')
               }}
-              onEditar={setEditando}
-              onFoto={async (prod, archivo) => {
-                onToast('Subiendo la foto…', prod.nombre, 'info')
-                const problema = await subirFoto(prod, archivo)
-                if (problema) onToast('No se pudo subir', problema, 'error')
-                else onToast('Foto lista', prod.nombre, 'success')
-              }}
-              onQuitarFoto={async (prod) => {
-                const ok = await quitarFoto(prod)
-                if (ok) onToast('Foto quitada', prod.nombre, 'success')
-                else onToast('No se pudo quitar la foto', undefined, 'error')
-              }}
+              onEditar={(prod) => setEditandoId(prod.id)}
             />
           ))}
         </div>
@@ -752,11 +761,21 @@ export function Inventario({ onToast }: Readonly<Props>) {
           producto={editando}
           categorias={categorias}
           productos={productos}
-          onClose={() => setEditando(null)}
+          onClose={() => setEditandoId(null)}
           onGuardar={async (cambios) => {
             const problema = await editarProducto(editando.id, cambios)
             if (!problema) onToast('Producto actualizado', editando.nombre, 'success')
             return problema
+          }}
+          onFoto={async (archivo) => {
+            const problema = await subirFoto(editando, archivo)
+            if (!problema) onToast('Foto lista', editando.nombre, 'success')
+            return problema
+          }}
+          onQuitarFoto={async () => {
+            const ok = await quitarFoto(editando)
+            if (ok) onToast('Foto quitada', editando.nombre, 'success')
+            return ok ? null : 'No se pudo quitar la foto.'
           }}
         />
       )}

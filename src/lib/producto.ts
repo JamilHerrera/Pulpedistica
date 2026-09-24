@@ -1,23 +1,27 @@
 /**
  * Qué se puede escribir en la ficha de un producto.
  *
- * Las mismas reglas están en la base como restricciones —precio y stock no
- * negativos, unidad de una lista cerrada, nombre único dentro del negocio— y
- * ahí es donde se garantizan. Esto no las reemplaza: evita el viaje de ida y
- * vuelta y, sobre todo, dice QUÉ campo está mal, que es algo que un error de
- * Postgres no comunica bien a quien está cargando mercadería.
+ * Son los datos del catálogo: cómo se llama el producto, cuánto cuesta, de qué
+ * categoría es y cómo se vende. La existencia no está acá a propósito: es el
+ * número que cambia todos los días cuando entra o sale mercadería, y se ajusta
+ * en la tarjeta misma, sin abrir ninguna ficha.
+ *
+ * Las mismas reglas están en la base como restricciones —precio no negativo,
+ * unidad de una lista cerrada, nombre único dentro del negocio— y ahí es donde
+ * se garantizan. Esto no las reemplaza: evita el viaje de ida y vuelta y, sobre
+ * todo, dice QUÉ campo está mal, que es algo que un error de Postgres no
+ * comunica bien a quien está cargando mercadería.
  *
  * Todo es cálculo puro: ni red, ni DOM, ni reloj.
  */
 
-import { redondearCantidad, type UnidadMedida } from './unidades'
+import type { UnidadMedida } from './unidades'
 
 /** Lo que el formulario tiene escrito: texto, tal como se tecleó. */
 export interface CamposProducto {
   nombre: string
   /** Vacío significa "sin precio", que es un estado válido del catálogo. */
   precio: string
-  stock: string
   unidad: UnidadMedida
   categoria_id: string | null
 }
@@ -26,12 +30,11 @@ export interface CamposProducto {
 export interface ValoresProducto {
   nombre: string
   precio: number | null
-  stock_actual: number
   unidad: UnidadMedida
   categoria_id: string | null
 }
 
-export type ErroresProducto = Partial<Record<'nombre' | 'precio' | 'stock', string>>
+export type ErroresProducto = Partial<Record<'nombre' | 'precio', string>>
 
 export type ResultadoValidacion =
   | { ok: true; valores: ValoresProducto }
@@ -54,9 +57,6 @@ export const NOMBRE_MAX = 80
 
 /** Tope del precio. Un número más grande que esto es un dedazo, no un precio. */
 export const PRECIO_MAX = 999_999
-
-/** Tope del stock. Coincide con `numeric(10,3)` de la columna. */
-export const STOCK_MAX = 9_999_999
 
 /**
  * Normaliza un nombre para compararlo.
@@ -91,14 +91,6 @@ export function validarProducto(campos: CamposProducto): ResultadoValidacion {
   const precio = interpretarPrecio(campos.precio)
   if (precio === 'invalido') errores.precio = 'El precio tiene que ser un número de 0 en adelante.'
 
-  const stockCrudo = Number.parseFloat(campos.stock.trim().replace(',', '.'))
-  const stock = redondearCantidad(stockCrudo, campos.unidad)
-  if (campos.stock.trim() === '' || !Number.isFinite(stockCrudo) || stockCrudo < 0) {
-    errores.stock = 'La existencia tiene que ser un número de 0 en adelante.'
-  } else if (stock > STOCK_MAX) {
-    errores.stock = 'Esa existencia es demasiado grande.'
-  }
-
   if (Object.keys(errores).length > 0) return { ok: false, errores }
 
   return {
@@ -106,7 +98,6 @@ export function validarProducto(campos: CamposProducto): ResultadoValidacion {
     valores: {
       nombre,
       precio: precio as number | null,
-      stock_actual: stock,
       unidad: campos.unidad,
       // Cadena vacía en un <select> significa "sin categoría", y la columna
       // acepta NULL. Mandar '' rompería la llave foránea.
@@ -147,7 +138,6 @@ export function cambiosDeProducto(
   const cambios: Partial<ValoresProducto> = {}
   if (nuevos.nombre !== original.nombre) cambios.nombre = nuevos.nombre
   if (nuevos.precio !== original.precio) cambios.precio = nuevos.precio
-  if (nuevos.stock_actual !== original.stock_actual) cambios.stock_actual = nuevos.stock_actual
   if (nuevos.unidad !== original.unidad) cambios.unidad = nuevos.unidad
   if (nuevos.categoria_id !== original.categoria_id) cambios.categoria_id = nuevos.categoria_id
   return cambios
