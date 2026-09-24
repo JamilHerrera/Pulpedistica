@@ -1,10 +1,14 @@
 import { useState, useMemo, useRef } from 'react'
-import { Search, Plus, Package, Check, X, ChevronDown, Tag, Info, Camera, Trash2 } from 'lucide-react'
+import { Search, Plus, Package, Check, X, ChevronDown, Tag, Info, Camera, Trash2, Pencil } from 'lucide-react'
 import { useInventario } from '../hooks/useInventario'
 import { usePerfil } from '../hooks/usePerfil'
 import { SkeletonList } from '../components/ui/SkeletonCard'
 import { FotoProducto } from '../components/ui/FotoProducto'
 import { UNIDADES, UNIDADES_DISPONIBLES, formatearCantidad, redondearCantidad, reglaDe } from '../lib/unidades'
+import {
+  validarProducto, nombreRepetido, cambiosDeProducto, erroresDe, NOMBRE_MAX,
+  type ValoresProducto, type ErroresProducto,
+} from '../lib/producto'
 import type { Producto, UnidadMedida } from '../types'
 
 interface Props {
@@ -32,7 +36,7 @@ function stockStatus(stock: number): { label: string; color: string; bar: string
 }
 
 function ProductoCard({
-  producto, onUpdate, isUpdating, esAdmin, onFoto, onQuitarFoto, onUnidad,
+  producto, onUpdate, isUpdating, esAdmin, onFoto, onQuitarFoto, onEditar,
 }: Readonly<{
   producto: Producto
   onUpdate: (id: string, stock: number) => void
@@ -40,7 +44,7 @@ function ProductoCard({
   esAdmin: boolean
   onFoto: (p: Producto, archivo: File) => void
   onQuitarFoto: (p: Producto) => void
-  onUnidad: (id: string, unidad: UnidadMedida) => void
+  onEditar: (p: Producto) => void
 }>) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(String(producto.stock_actual))
@@ -106,19 +110,20 @@ function ProductoCard({
             {producto.categorias && (
               <span className="truncate text-xs text-white/30">{producto.categorias.nombre}</span>
             )}
-            {esAdmin ? (
-              <select
-                value={producto.unidad ?? 'unidad'}
-                onChange={(e) => onUnidad(producto.id, e.target.value as UnidadMedida)}
-                aria-label={`Unidad de ${producto.nombre}`}
-                className="rounded-lg border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-white/50 outline-none focus:border-brand/50"
+            {abreviatura && <span className="text-[10px] text-white/30">por {abreviatura}</span>}
+            {producto.precio !== null && producto.precio !== undefined && (
+              <span className="text-[10px] font-medium text-brand-light">
+                L {Number(producto.precio).toFixed(2)}{abreviatura && `/${abreviatura}`}
+              </span>
+            )}
+            {esAdmin && (
+              <button
+                onClick={() => onEditar(producto)}
+                title={`Editar ${producto.nombre}`}
+                className="flex items-center gap-1 text-[10px] font-medium text-white/40 transition-colors hover:text-brand-light"
               >
-                {UNIDADES_DISPONIBLES.map((u) => (
-                  <option key={u} value={u} className="bg-surface">{UNIDADES[u].etiqueta}</option>
-                ))}
-              </select>
-            ) : (
-              abreviatura && <span className="text-[10px] text-white/30">por {abreviatura}</span>
+                <Pencil size={10} /> Editar
+              </button>
             )}
             {producto.imagen_url && esAdmin && (
               <button
@@ -178,6 +183,226 @@ function ProductoCard({
   )
 }
 
+
+/**
+ * Ficha de edición de un producto.
+ *
+ * Solo aparecen los campos que conviene editar. `id` y `negocio_id` no están,
+ * y no es un olvido: mover un producto de negocio rompería el historial de
+ * ventas y el aislamiento entre pulperías. Borrar tampoco se ofrece acá,
+ * porque un producto con ventas no se puede borrar sin dejar el historial sin
+ * referencia — la base misma lo impide.
+ *
+ * Renombrar y cambiar el precio SÍ son seguros: las ventas pasadas apuntan al
+ * identificador y guardan su propio subtotal, así que nada de lo ya cobrado
+ * cambia de monto al corregir el catálogo.
+ */
+function EditarProductoModal({
+  producto, categorias, productos, onGuardar, onClose,
+}: Readonly<{
+  producto: Producto
+  categorias: { id: string; nombre: string }[]
+  productos: Producto[]
+  onGuardar: (cambios: Partial<ValoresProducto>) => Promise<string | null>
+  onClose: () => void
+}>) {
+  const [nombre, setNombre] = useState(producto.nombre)
+  const [precio, setPrecio] = useState(
+    producto.precio === null || producto.precio === undefined ? '' : String(producto.precio),
+  )
+  const [stock, setStock] = useState(String(producto.stock_actual))
+  const [unidad, setUnidad] = useState<UnidadMedida>(producto.unidad ?? 'unidad')
+  const [catId, setCatId] = useState(producto.categoria_id ?? '')
+  const [fallo, setFallo] = useState<string | null>(null)
+  const [guardando, setGuardando] = useState(false)
+
+  const original: ValoresProducto = {
+    nombre: producto.nombre,
+    precio: producto.precio === null || producto.precio === undefined ? null : Number(producto.precio),
+    stock_actual: producto.stock_actual,
+    unidad: producto.unidad ?? 'unidad',
+    categoria_id: producto.categoria_id ?? null,
+  }
+
+  const validacion = validarProducto({ nombre, precio, stock, unidad, categoria_id: catId })
+  const repetido = nombreRepetido(nombre, productos, producto.id)
+  const cambios = validacion.ok ? cambiosDeProducto(original, validacion.valores) : {}
+  const hayCambios = Object.keys(cambios).length > 0
+
+  /**
+   * Los avisos se muestran mientras se escribe, no al apretar Guardar.
+   *
+   * Guardar está deshabilitado justamente cuando hay algo mal, así que pedirle
+   * un clic para enterarse de qué está mal dejaba el botón muerto y sin
+   * explicación. La ficha abre con los valores que ya están guardados, que son
+   * válidos: si algo no pasa la validación es porque se acabó de escribir.
+   */
+  const errores: ErroresProducto = erroresDe(validacion)
+  const puedeGuardar = validacion.ok && !repetido && hayCambios && !guardando
+
+  /**
+   * Cambia la unidad y ajusta la existencia a la vista.
+   *
+   * Pasar de "por libra" a "por unidad" hace que 2.5 deje de ser una cantidad
+   * representable. El ajuste se hace acá, en el campo, y no callado al
+   * guardar: así se ve con qué existencia va a quedar el producto antes de
+   * confirmar, en vez de descubrir después que media libra se perdió.
+   */
+  const elegirUnidad = (nueva: UnidadMedida) => {
+    setUnidad(nueva)
+    const n = Number.parseFloat(stock.trim().replace(',', '.'))
+    if (!Number.isFinite(n)) return
+    const ajustado = redondearCantidad(n, nueva)
+    if (ajustado !== n) setStock(String(ajustado))
+  }
+
+  const guardar = async () => {
+    if (!puedeGuardar) return
+
+    setFallo(null)
+    setGuardando(true)
+    const problema = await onGuardar(cambios)
+    setGuardando(false)
+    if (problema) setFallo(problema)
+    else onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-black/60 backdrop-blur-sm"
+      />
+      <div className="relative w-full sm:max-w-lg glass-card rounded-t-3xl sm:rounded-3xl p-5 pb-8 sm:pb-5 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <FotoProducto nombre={producto.nombre} url={producto.imagen_url} className="h-11 w-11 rounded-xl shrink-0" iconSize={18} />
+            <div className="min-w-0">
+              <h2 className="text-white font-bold text-base leading-tight truncate">Editar producto</h2>
+              <p className="text-white/35 text-xs truncate">{producto.nombre}</p>
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="Cerrar" className="text-white/30 shrink-0"><X size={20} /></button>
+        </div>
+
+        <div>
+          <label htmlFor="editar-nombre" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Nombre</label>
+          <input
+            id="editar-nombre"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            maxLength={NOMBRE_MAX}
+            className="input-field"
+            ref={enfocarAlAparecer}
+          />
+          {errores.nombre && <p className="mt-1.5 text-xs text-danger">{errores.nombre}</p>}
+          {repetido && <p className="mt-1.5 text-xs text-danger">Ya tenés otro producto con ese nombre.</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="editar-stock" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Existencia</label>
+            <input
+              id="editar-stock"
+              type="text"
+              inputMode="decimal"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className="input-field"
+            />
+            {errores.stock && <p className="mt-1.5 text-xs text-danger">{errores.stock}</p>}
+          </div>
+          <div>
+            <label htmlFor="editar-unidad" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Cómo se vende</label>
+            <div className="relative">
+              <select
+                id="editar-unidad"
+                value={unidad}
+                onChange={(e) => elegirUnidad(e.target.value as UnidadMedida)}
+                className="input-field appearance-none pr-8"
+              >
+                {UNIDADES_DISPONIBLES.map((u) => (
+                  <option key={u} value={u} className="bg-surface">{UNIDADES[u].etiqueta}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="editar-precio" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">
+            Precio {UNIDADES[unidad].abreviatura && `por ${UNIDADES[unidad].abreviatura}`}
+          </label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-bold">L</span>
+            <input
+              id="editar-precio"
+              type="text"
+              inputMode="decimal"
+              value={precio}
+              onChange={(e) => setPrecio(e.target.value)}
+              placeholder="Sin precio"
+              className="input-field pl-8"
+            />
+          </div>
+          {errores.precio && <p className="mt-1.5 text-xs text-danger">{errores.precio}</p>}
+          {/* Cambiar el precio no toca lo ya cobrado: cada venta guardó el suyo. */}
+          <p className="mt-1.5 text-white/25 text-[11px]">
+            Se usa en las ventas nuevas. Las ventas ya registradas conservan el precio con el que se cobraron.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="editar-categoria" className="text-white/40 text-xs uppercase tracking-wider mb-1.5 block">Categoría</label>
+          <div className="relative">
+            <select
+              id="editar-categoria"
+              value={catId}
+              onChange={(e) => setCatId(e.target.value)}
+              className="input-field appearance-none pr-8"
+            >
+              <option value="" className="bg-surface">— Sin categoría —</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id} className="bg-surface">{c.nombre}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+          </div>
+        </div>
+
+        {fallo && (
+          <p className="text-xs text-danger bg-danger/10 border border-danger/20 rounded-xl px-3 py-2">{fallo}</p>
+        )}
+
+        {validacion.ok && !repetido && !hayCambios && (
+          <p className="text-center text-[11px] text-white/25">Todavía no cambiaste nada.</p>
+        )}
+
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 py-3 rounded-2xl text-sm font-bold bg-white/5 text-white/60 active:scale-95 transition-all">
+            Cancelar
+          </button>
+          <button
+            onClick={guardar}
+            disabled={!puedeGuardar}
+            className={`flex-[2] py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 ${
+              puedeGuardar
+                ? 'bg-gradient-to-r from-brand to-brand-dark text-white'
+                : 'bg-white/10 text-white/30 cursor-not-allowed'
+            }`}
+          >
+            {guardando
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando…</>
+              : <><Check size={16} /> Guardar cambios</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function AddProductModal({
   categorias, onAdd, onAddCategoria, onClose,
@@ -396,9 +621,10 @@ function AddProductModal({
 export function Inventario({ onToast }: Readonly<Props>) {
   const {
     productos, categorias, loading, error, updatingId,
-    actualizarStock, cambiarUnidad, subirFoto, quitarFoto,
+    actualizarStock, editarProducto, subirFoto, quitarFoto,
     agregarProducto, agregarCategoria, refetch,
   } = useInventario()
+  const [editando, setEditando] = useState<Producto | null>(null)
   // Editar el catalogo es del admin: las politicas lo exigen del lado del servidor.
   const { esAdmin } = usePerfil()
   const [query, setQuery] = useState('')
@@ -504,11 +730,7 @@ export function Inventario({ onToast }: Readonly<Props>) {
                 if (ok) onToast('Stock actualizado', `${p.nombre}: ${formatearCantidad(stock, p.unidad)}`, 'success')
                 else onToast('Error al actualizar', undefined, 'error')
               }}
-              onUnidad={async (id, unidad) => {
-                const ok = await cambiarUnidad(id, unidad)
-                if (ok) onToast('Unidad actualizada', `${p.nombre}: ${UNIDADES[unidad].etiqueta.toLowerCase()}`, 'success')
-                else onToast('No se pudo cambiar la unidad', undefined, 'error')
-              }}
+              onEditar={setEditando}
               onFoto={async (prod, archivo) => {
                 onToast('Subiendo la foto…', prod.nombre, 'info')
                 const problema = await subirFoto(prod, archivo)
@@ -523,6 +745,20 @@ export function Inventario({ onToast }: Readonly<Props>) {
             />
           ))}
         </div>
+      )}
+
+      {editando && (
+        <EditarProductoModal
+          producto={editando}
+          categorias={categorias}
+          productos={productos}
+          onClose={() => setEditando(null)}
+          onGuardar={async (cambios) => {
+            const problema = await editarProducto(editando.id, cambios)
+            if (!problema) onToast('Producto actualizado', editando.nombre, 'success')
+            return problema
+          }}
+        />
       )}
 
       {showAdd && (

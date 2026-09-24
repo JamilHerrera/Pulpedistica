@@ -5,6 +5,7 @@ import { consultaCacheada, invalidar, TTL } from '../lib/cache'
 import {
   DEPOSITO, motivoDeRechazo, reducirImagen, rutaDeFoto, rutaDesdeUrl,
 } from '../lib/imagenes'
+import type { ValoresProducto } from '../lib/producto'
 import type { Producto, Categoria, UnidadMedida } from '../types'
 import { agruparLlamadas } from '../lib/agrupar'
 
@@ -73,29 +74,6 @@ export function useInventario() {
       return true
     } catch (e) {
       console.error('Error actualizando stock:', e)
-      return false
-    } finally {
-      setUpdatingId(null)
-    }
-  }, [])
-
-  /**
-   * Cambia cómo se cuenta un producto.
-   *
-   * Pasar de "por libra" a "por unidad" no toca el stock ya cargado: 2.5 sigue
-   * siendo 2.5 hasta que alguien lo corrija. Truncarlo en silencio haría
-   * desaparecer existencias reales sin que nadie lo pidiera.
-   */
-  const cambiarUnidad = useCallback(async (id: string, unidad: UnidadMedida): Promise<boolean> => {
-    setUpdatingId(id)
-    try {
-      const { error } = await supabase.from('productos').update({ unidad }).eq('id', id)
-      if (error) throw error
-      invalidar('inventario', 'productos', 'venta')
-      setProductos((prev) => prev.map((p) => (p.id === id ? { ...p, unidad } : p)))
-      return true
-    } catch (e) {
-      console.error('Error cambiando la unidad:', e)
       return false
     } finally {
       setUpdatingId(null)
@@ -175,6 +153,43 @@ export function useInventario() {
     }
   }, [])
 
+  /**
+   * Guarda los cambios de la ficha de un producto.
+   *
+   * Recibe SOLO los campos que se tocaron (ver `cambiosDeProducto`), así que
+   * no reescribe columnas que nadie editó. Devuelve `null` si salió bien, o el
+   * motivo para mostrarlo; ningún campo de identidad es editable: `id` y
+   * `negocio_id` no viajan nunca, y aunque viajaran las políticas del negocio
+   * las rechazarían.
+   */
+  const editarProducto = useCallback(
+    async (id: string, cambios: Partial<ValoresProducto>): Promise<string | null> => {
+      if (Object.keys(cambios).length === 0) return null
+
+      setUpdatingId(id)
+      try {
+        const { error } = await supabase.from('productos').update(cambios).eq('id', id)
+        if (error) {
+          // 23505: el índice único de nombre por negocio. La comprobación en
+          // pantalla se adelanta, pero esta es la que manda, y cubre el caso
+          // de que otra persona haya creado ese nombre hace un segundo.
+          if (error.code === '23505') return 'Ya tenés otro producto con ese nombre.'
+          throw error
+        }
+
+        invalidar('inventario', 'productos', 'semaforo', 'dashboard', 'estancados', 'venta', 'analisis')
+        await fetchData()
+        return null
+      } catch (e) {
+        console.error('Error editando el producto:', e)
+        return 'No se pudo guardar. Revisá tu conexión.'
+      } finally {
+        setUpdatingId(null)
+      }
+    },
+    [fetchData],
+  )
+
   const agregarProducto = useCallback(
     // El precio no se guarda en productos: se captura por venta en
     // detalle_ventas.subtotal (ver el cache de precios en useVenta).
@@ -234,7 +249,7 @@ export function useInventario() {
     error,
     updatingId,
     actualizarStock,
-    cambiarUnidad,
+    editarProducto,
     subirFoto,
     quitarFoto,
     agregarProducto,
