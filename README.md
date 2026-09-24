@@ -37,7 +37,7 @@ El sistema transforma el mostrador tradicional en un punto de venta express inte
 
 ## 📂 Estructura de la Base de Datos (Supabase)
 
-El esquema completo, exportado desde la base real, está en [`docs/db-export.json`](docs/db-export.json); para regenerarlo se usa [`docs/export-schema.sql`](docs/export-schema.sql).
+El esquema completo, exportado desde la base real, está en [`docs/db-export.json`](docs/db-export.json): 12 tablas, 83 columnas y 24 políticas RLS. Para regenerarlo se usa [`docs/export-schema.sql`](docs/export-schema.sql), que lee los catálogos de Postgres, así que lo que sale es exactamente lo que hay.
 
 **Catálogo y ventas**
 

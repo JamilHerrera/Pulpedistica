@@ -1,287 +1,790 @@
 {
-  "generado_at": "2026-09-02T04:53:20Z",
-  "motor": "postgres",
-  "tablas": [
-    {
-      "nombre": "categorias",
-      "filas": 6,
-      "columnas": [
+    "motor": "postgres",
+    "tablas": [
         {
-          "nombre": "id",
-          "tipo": "uuid",
-          "pk": true,
-          "nulo": false
+            "filas": 3,
+            "nombre": "categorias",
+            "indices": [
+                "categorias_pkey",
+                "idx_categorias_negocio",
+                "idx_categorias_nombre_unico_por_negocio"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "character varying",
+                    "nombre": "nombre"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "character varying",
+                    "nombre": "color_semaforo"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                }
+            ],
+            "politicas_rls": [
+                "categorias_admin_escribe",
+                "categorias_lectura"
+            ]
         },
         {
-          "nombre": "nombre",
-          "tipo": "character varying",
-          "pk": false,
-          "nulo": false
+            "filas": 3,
+            "nombre": "clientes",
+            "indices": [
+                "clientes_pkey",
+                "idx_clientes_negocio"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "nombre"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "telefono"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "notas"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "created_at"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                }
+            ],
+            "politicas_rls": [
+                "clientes_del_negocio"
+            ]
         },
         {
-          "nombre": "color_semaforo",
-          "tipo": "character varying",
-          "pk": false,
-          "nulo": false
+            "filas": 1200,
+            "nombre": "detalle_ventas",
+            "indices": [
+                "detalle_ventas_pkey",
+                "idx_detalle_ventas_negocio",
+                "idx_detalle_ventas_producto",
+                "idx_detalle_ventas_venta"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "venta_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "producto_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "numeric(10,3)",
+                    "nombre": "cantidad"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "numeric",
+                    "nombre": "subtotal"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                },
+                {
+                    "columna": "producto_id",
+                    "referencia": "productos.id"
+                },
+                {
+                    "columna": "venta_id",
+                    "referencia": "ventas.id"
+                }
+            ],
+            "politicas_rls": [
+                "detalle_ventas_lectura"
+            ]
+        },
+        {
+            "filas": 0,
+            "nombre": "feedback",
+            "indices": [
+                "feedback_pkey",
+                "idx_feedback_autor",
+                "idx_feedback_pendiente",
+                "idx_feedback_reciente"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "user_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "tipo"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "smallint",
+                    "nombre": "calificacion"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "mensaje"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "pantalla"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "boolean",
+                    "nombre": "atendido"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "created_at"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                },
+                {
+                    "columna": "user_id",
+                    "referencia": "users.id"
+                }
+            ],
+            "politicas_rls": [
+                "feedback_admin_atiende",
+                "feedback_admin_borra",
+                "feedback_admin_ve_todo",
+                "feedback_enviar",
+                "feedback_ver_lo_propio"
+            ]
+        },
+        {
+            "filas": 3,
+            "nombre": "fiados",
+            "indices": [
+                "fiados_pkey",
+                "idx_fiados_cliente",
+                "idx_fiados_idempotency",
+                "idx_fiados_negocio",
+                "idx_fiados_pendientes"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "cliente_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "venta_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "numeric(10,2)",
+                    "nombre": "monto"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "boolean",
+                    "nombre": "pagado"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "fecha_registro"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "fecha_pago"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "idempotency_key"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "cliente_id",
+                    "referencia": "clientes.id"
+                },
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                },
+                {
+                    "columna": "venta_id",
+                    "referencia": "ventas.id"
+                }
+            ],
+            "politicas_rls": [
+                "fiados_actualizar",
+                "fiados_admin_borra",
+                "fiados_del_negocio",
+                "fiados_insertar"
+            ]
+        },
+        {
+            "filas": 3,
+            "nombre": "invitaciones",
+            "indices": [
+                "idx_invitaciones_negocio",
+                "invitaciones_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "codigo"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "rol"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "creada_por"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "usada_por"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "usada_en"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "expira_en"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "created_at"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "creada_por",
+                    "referencia": "users.id"
+                },
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                },
+                {
+                    "columna": "usada_por",
+                    "referencia": "users.id"
+                }
+            ],
+            "politicas_rls": [
+                "invitaciones_admin"
+            ]
+        },
+        {
+            "filas": 21,
+            "nombre": "negocios",
+            "indices": [
+                "negocios_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "nombre"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "created_at"
+                }
+            ],
+            "relaciones": [
+            ],
+            "politicas_rls": [
+                "negocios_el_mio"
+            ]
+        },
+        {
+            "filas": 2,
+            "nombre": "perfiles",
+            "indices": [
+                "idx_perfiles_negocio",
+                "perfiles_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "nombre"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "created_at"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "boolean",
+                    "nombre": "es_soporte"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "rol"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "id",
+                    "referencia": "users.id"
+                },
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                }
+            ],
+            "politicas_rls": [
+                "perfiles_admin_gestiona",
+                "perfiles_de_mi_negocio"
+            ]
+        },
+        {
+            "filas": 27,
+            "nombre": "productos",
+            "indices": [
+                "idx_productos_categoria",
+                "idx_productos_negocio",
+                "idx_productos_nombre_unico_por_negocio",
+                "productos_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "character varying",
+                    "nombre": "nombre"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "numeric(10,3)",
+                    "nombre": "stock_actual"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "categoria_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "numeric(10,2)",
+                    "nombre": "precio"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "unidad"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "imagen_url"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "categoria_id",
+                    "referencia": "categorias.id"
+                },
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                }
+            ],
+            "politicas_rls": [
+                "productos_admin_escribe",
+                "productos_lectura"
+            ]
+        },
+        {
+            "filas": 18,
+            "nombre": "schema_migrations",
+            "indices": [
+                "schema_migrations_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "version"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "descripcion"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "aplicada_en"
+                }
+            ],
+            "relaciones": [
+            ],
+            "politicas_rls": [
+            ]
+        },
+        {
+            "filas": 2,
+            "nombre": "tickets",
+            "indices": [
+                "idx_tickets_alta",
+                "idx_tickets_estado",
+                "idx_tickets_recientes",
+                "tickets_huella_key",
+                "tickets_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "huella"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "titulo"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "origen"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "detalle"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "pantalla"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "ruta"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "navegador"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "text",
+                    "nombre": "estado"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "text",
+                    "nombre": "nota"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "integer",
+                    "nombre": "veces"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "primera_vez"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "ultima_vez"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "reportado_por"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                },
+                {
+                    "columna": "reportado_por",
+                    "referencia": "users.id"
+                }
+            ],
+            "politicas_rls": [
+                "tickets_soporte_borra",
+                "tickets_soporte_edita",
+                "tickets_soporte_ve"
+            ]
+        },
+        {
+            "filas": 278,
+            "nombre": "ventas",
+            "indices": [
+                "idx_ventas_fecha_hora",
+                "idx_ventas_idempotency",
+                "idx_ventas_negocio",
+                "idx_ventas_negocio_fecha",
+                "ventas_pkey"
+            ],
+            "columnas": [
+                {
+                    "pk": true,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "id"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "timestamp with time zone",
+                    "nombre": "fecha_hora"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "numeric",
+                    "nombre": "monto_total"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "boolean",
+                    "nombre": "anulada"
+                },
+                {
+                    "pk": false,
+                    "nulo": true,
+                    "tipo": "uuid",
+                    "nombre": "idempotency_key"
+                },
+                {
+                    "pk": false,
+                    "nulo": false,
+                    "tipo": "uuid",
+                    "nombre": "negocio_id"
+                }
+            ],
+            "relaciones": [
+                {
+                    "columna": "negocio_id",
+                    "referencia": "negocios.id"
+                }
+            ],
+            "politicas_rls": [
+                "ventas_admin_modifica",
+                "ventas_lectura"
+            ]
         }
-      ],
-      "indices": [
-        "categorias_pkey"
-      ],
-      "relaciones": [],
-      "politicas_rls": [
-        "categorias_acceso_autenticado"
-      ]
-    },
-    {
-      "nombre": "clientes",
-      "filas": 1,
-      "columnas": [
-        {
-          "nombre": "id",
-          "tipo": "uuid",
-          "pk": true,
-          "nulo": false
-        },
-        {
-          "nombre": "nombre",
-          "tipo": "text",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "telefono",
-          "tipo": "text",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "notas",
-          "tipo": "text",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "created_at",
-          "tipo": "timestamp with time zone",
-          "pk": false,
-          "nulo": false
-        }
-      ],
-      "indices": [
-        "clientes_pkey"
-      ],
-      "relaciones": [],
-      "politicas_rls": [
-        "clientes_acceso_autenticado"
-      ]
-    },
-    {
-      "nombre": "detalle_ventas",
-      "filas": 22,
-      "columnas": [
-        {
-          "nombre": "id",
-          "tipo": "uuid",
-          "pk": true,
-          "nulo": false
-        },
-        {
-          "nombre": "venta_id",
-          "tipo": "uuid",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "producto_id",
-          "tipo": "uuid",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "cantidad",
-          "tipo": "integer",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "subtotal",
-          "tipo": "numeric",
-          "pk": false,
-          "nulo": false
-        }
-      ],
-      "indices": [
-        "detalle_ventas_pkey",
-        "idx_detalle_ventas_producto",
-        "idx_detalle_ventas_venta"
-      ],
-      "relaciones": [
-        {
-          "columna": "producto_id",
-          "referencia": "productos.id"
-        },
-        {
-          "columna": "venta_id",
-          "referencia": "ventas.id"
-        }
-      ],
-      "politicas_rls": [
-        "detalle_ventas_acceso_autenticado"
-      ]
-    },
-    {
-      "nombre": "fiados",
-      "filas": 1,
-      "columnas": [
-        {
-          "nombre": "id",
-          "tipo": "uuid",
-          "pk": true,
-          "nulo": false
-        },
-        {
-          "nombre": "cliente_id",
-          "tipo": "uuid",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "venta_id",
-          "tipo": "uuid",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "monto",
-          "tipo": "numeric(10,2)",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "pagado",
-          "tipo": "boolean",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "fecha_registro",
-          "tipo": "timestamp with time zone",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "fecha_pago",
-          "tipo": "timestamp with time zone",
-          "pk": false,
-          "nulo": true
-        }
-      ],
-      "indices": [
-        "fiados_pkey",
-        "idx_fiados_cliente",
-        "idx_fiados_pendientes"
-      ],
-      "relaciones": [
-        {
-          "columna": "cliente_id",
-          "referencia": "clientes.id"
-        },
-        {
-          "columna": "venta_id",
-          "referencia": "ventas.id"
-        }
-      ],
-      "politicas_rls": [
-        "fiados_acceso_autenticado"
-      ]
-    },
-    {
-      "nombre": "productos",
-      "filas": 18,
-      "columnas": [
-        {
-          "nombre": "id",
-          "tipo": "uuid",
-          "pk": true,
-          "nulo": false
-        },
-        {
-          "nombre": "nombre",
-          "tipo": "character varying",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "stock_actual",
-          "tipo": "integer",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "categoria_id",
-          "tipo": "uuid",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "precio",
-          "tipo": "numeric(10,2)",
-          "pk": false,
-          "nulo": true
-        }
-      ],
-      "indices": [
-        "idx_productos_categoria",
-        "productos_pkey"
-      ],
-      "relaciones": [
-        {
-          "columna": "categoria_id",
-          "referencia": "categorias.id"
-        }
-      ],
-      "politicas_rls": [
-        "productos_acceso_autenticado"
-      ]
-    },
-    {
-      "nombre": "ventas",
-      "filas": 22,
-      "columnas": [
-        {
-          "nombre": "id",
-          "tipo": "uuid",
-          "pk": true,
-          "nulo": false
-        },
-        {
-          "nombre": "fecha_hora",
-          "tipo": "timestamp with time zone",
-          "pk": false,
-          "nulo": true
-        },
-        {
-          "nombre": "monto_total",
-          "tipo": "numeric",
-          "pk": false,
-          "nulo": false
-        },
-        {
-          "nombre": "anulada",
-          "tipo": "boolean",
-          "pk": false,
-          "nulo": true
-        }
-      ],
-      "indices": [
-        "idx_ventas_fecha_hora",
-        "ventas_pkey"
-      ],
-      "relaciones": [],
-      "politicas_rls": [
-        "ventas_acceso_autenticado"
-      ]
-    }
-  ]
+    ],
+    "generado_at": "2026-09-24T01:26:18Z"
 }
