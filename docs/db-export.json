@@ -47,7 +47,7 @@
             ]
         },
         {
-            "filas": 3,
+            "filas": 2,
             "nombre": "clientes",
             "indices": [
                 "clientes_pkey",
@@ -102,7 +102,7 @@
             ]
         },
         {
-            "filas": 1200,
+            "filas": 37,
             "nombre": "detalle_ventas",
             "indices": [
                 "detalle_ventas_pkey",
@@ -250,7 +250,7 @@
             ]
         },
         {
-            "filas": 3,
+            "filas": 2,
             "nombre": "fiados",
             "indices": [
                 "fiados_pkey",
@@ -337,7 +337,7 @@
             ]
         },
         {
-            "filas": 3,
+            "filas": 2,
             "nombre": "invitaciones",
             "indices": [
                 "idx_invitaciones_negocio",
@@ -412,7 +412,7 @@
             ]
         },
         {
-            "filas": 21,
+            "filas": 2,
             "nombre": "negocios",
             "indices": [
                 "negocios_pkey"
@@ -504,7 +504,7 @@
             ]
         },
         {
-            "filas": 27,
+            "filas": 19,
             "nombre": "productos",
             "indices": [
                 "idx_productos_categoria",
@@ -727,7 +727,7 @@
             ]
         },
         {
-            "filas": 278,
+            "filas": 35,
             "nombre": "ventas",
             "indices": [
                 "idx_ventas_fecha_hora",
@@ -786,5 +786,5 @@
             ]
         }
     ],
-    "generado_at": "2026-09-24T01:26:18Z"
+    "generado_at": "2026-09-24T01:43:09Z"
 }
